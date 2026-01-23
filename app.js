@@ -292,12 +292,15 @@ class ReminderApp {
     }
 
     addToHistory(session) {
+        // Only add reminders to history, not timers
+        if (session.type !== 'reminder') return;
+
         const historyItem = {
             id: session.id,
             name: session.name,
             type: session.type,
-            completedAt: Date.now(),
-            originalDuration: session.originalDuration
+            setTime: session.targetTime,
+            completedAt: Date.now()
         };
 
         this.history.unshift(historyItem);
@@ -397,12 +400,11 @@ class ReminderApp {
 
         this.historyList.innerHTML = this.history.map(item => {
             return `
-                <div class="history-card ${item.type}">
+                <div class="history-card reminder">
                     <div class="history-info">
                         <div class="history-name">${this.escapeHtml(item.name)}</div>
                         <div class="history-meta">
-                            <span class="history-type ${item.type}">${item.type.toUpperCase()}</span>
-                            ${this.formatTimeAgo(item.completedAt)}
+                            Set for ${this.formatDateTime(item.setTime)} · ${this.formatTimeAgo(item.completedAt)}
                         </div>
                     </div>
                 </div>
