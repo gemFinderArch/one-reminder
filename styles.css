@@ -30,6 +30,12 @@ h2 {
     color: #888;
 }
 
+h3 {
+    font-size: 1rem;
+    margin: 20px 0 10px;
+    color: #666;
+}
+
 #reminderCount {
     color: #00d9ff;
 }
@@ -48,7 +54,7 @@ h2 {
     color: #888;
     border-radius: 8px;
     cursor: pointer;
-    font-size: 1rem;
+    font-size: 0.9rem;
     transition: all 0.3s;
 }
 
@@ -169,6 +175,182 @@ h2 {
     box-shadow: 0 5px 20px rgba(0, 217, 255, 0.3);
 }
 
+/* Recent Timers */
+.recent-timers {
+    margin-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 15px;
+}
+
+#recentTimersList {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.recent-timer-btn {
+    padding: 8px 16px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    color: #00d9ff;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.recent-timer-btn:hover {
+    background: rgba(0, 217, 255, 0.2);
+    border-color: #00d9ff;
+}
+
+/* Settings */
+.settings-group {
+    margin-bottom: 25px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.settings-group:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.setting-label {
+    display: block;
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: #fff;
+}
+
+.setting-desc {
+    font-size: 0.85rem;
+    color: #666;
+    margin-bottom: 12px;
+}
+
+.sound-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.sound-btn {
+    padding: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    color: #888;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.sound-btn.active {
+    border-color: #00d9ff;
+    color: #00d9ff;
+    background: rgba(0, 217, 255, 0.1);
+}
+
+.sound-btn:hover:not(.active) {
+    border-color: rgba(255, 255, 255, 0.3);
+    color: #fff;
+}
+
+.test-btn {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #00d9ff;
+    border-radius: 8px;
+    background: transparent;
+    color: #00d9ff;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.test-btn:hover {
+    background: rgba(0, 217, 255, 0.1);
+}
+
+.snooze-setting {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.snooze-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding-left: 10px;
+}
+
+.snooze-row span {
+    color: #888;
+    font-size: 0.9rem;
+}
+
+.snooze-setting select,
+.snooze-row select {
+    padding: 8px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    font-size: 0.9rem;
+}
+
+/* Toggle Switch */
+.toggle {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 26px;
+}
+
+.toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.2);
+    transition: 0.3s;
+    border-radius: 26px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 3px;
+    bottom: 3px;
+    background-color: #fff;
+    transition: 0.3s;
+    border-radius: 50%;
+}
+
+input:checked + .slider {
+    background-color: #00d9ff;
+}
+
+input:checked + .slider:before {
+    transform: translateX(24px);
+}
+
+/* Reminders List */
 .reminders-section {
     margin-bottom: 20px;
 }
@@ -219,12 +401,17 @@ h2 {
     color: #888;
 }
 
+.reminder-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
 .reminder-countdown {
     font-size: 1.8rem;
     font-weight: 700;
     color: #00d9ff;
     font-family: 'Courier New', monospace;
-    margin-right: 20px;
 }
 
 .reminder-countdown.warning {
@@ -235,12 +422,29 @@ h2 {
     color: #ff4444;
 }
 
+.repeat-btn {
+    background: rgba(0, 217, 255, 0.2);
+    border: none;
+    color: #00d9ff;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.2s;
+}
+
+.repeat-btn:hover {
+    background: #00d9ff;
+    color: #1a1a2e;
+}
+
 .delete-btn {
     background: rgba(255, 68, 68, 0.2);
     border: none;
     color: #ff4444;
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     cursor: pointer;
     font-size: 1.2rem;
@@ -280,6 +484,114 @@ h2 {
     color: #555;
 }
 
+/* Modal */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal.active {
+    display: flex;
+}
+
+.modal-content {
+    background: linear-gradient(135deg, #2a2a4e 0%, #1a1a2e 100%);
+    padding: 40px;
+    border-radius: 20px;
+    text-align: center;
+    max-width: 400px;
+    width: 90%;
+    animation: shake 0.5s infinite;
+    border: 3px solid #ff4444;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+.alarm-icon {
+    font-size: 5rem;
+    margin-bottom: 20px;
+    animation: bounce 0.5s infinite alternate;
+}
+
+@keyframes bounce {
+    from { transform: scale(1); }
+    to { transform: scale(1.1); }
+}
+
+.modal-content h2 {
+    font-size: 2rem;
+    color: #ff4444;
+    margin-bottom: 10px;
+}
+
+.modal-content p {
+    font-size: 1.2rem;
+    color: #fff;
+    margin-bottom: 30px;
+}
+
+.alarm-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+.dismiss-btn {
+    padding: 15px 40px;
+    border: none;
+    border-radius: 10px;
+    background: #ff4444;
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.dismiss-btn:hover {
+    background: #ff6666;
+    transform: scale(1.05);
+}
+
+.snooze-btn {
+    padding: 15px 30px;
+    border: 2px solid #00d9ff;
+    border-radius: 10px;
+    background: transparent;
+    color: #00d9ff;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.snooze-btn:hover {
+    background: rgba(0, 217, 255, 0.2);
+}
+
+.snooze-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.snooze-count {
+    margin-top: 15px;
+    font-size: 0.9rem;
+    color: #888;
+}
+
 /* Color scheme for date inputs on Chrome */
 input[type="date"]::-webkit-calendar-picker-indicator,
 input[type="time"]::-webkit-calendar-picker-indicator {
@@ -290,6 +602,19 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 @media (max-width: 480px) {
     h1 {
         font-size: 1.8rem;
+    }
+
+    .tabs {
+        flex-wrap: wrap;
+    }
+
+    .tab-btn {
+        flex: none;
+        width: calc(50% - 5px);
+    }
+
+    .tab-btn:last-child {
+        width: 100%;
     }
 
     .countdown-inputs {
@@ -304,6 +629,13 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 
     .reminder-countdown {
         font-size: 1.3rem;
-        margin-right: 10px;
+    }
+
+    .sound-options {
+        grid-template-columns: 1fr;
+    }
+
+    .alarm-buttons {
+        flex-direction: column;
     }
 }

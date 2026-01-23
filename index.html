@@ -4,15 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>One Reminder</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⏰</text></svg>">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
-        <h1>One Reminder</h1>
+        <h1>⏰ One Reminder</h1>
 
         <div class="tabs">
             <button class="tab-btn active" data-tab="datetime">Date & Time</button>
             <button class="tab-btn" data-tab="countdown">Countdown</button>
+            <button class="tab-btn" data-tab="settings">Settings</button>
         </div>
 
         <div class="input-section">
@@ -42,6 +44,70 @@
                     </div>
                 </div>
                 <button id="addCountdownReminder" class="add-btn">Start Timer</button>
+
+                <div class="recent-timers">
+                    <h3>Recent Timers</h3>
+                    <div id="recentTimersList"></div>
+                </div>
+            </div>
+
+            <div id="settings-tab" class="tab-content">
+                <div class="settings-group">
+                    <label class="setting-label">Alarm Sound</label>
+                    <div class="sound-options">
+                        <button class="sound-btn" data-sound="light">🔔 Light</button>
+                        <button class="sound-btn active" data-sound="strong">🔊 Strong</button>
+                        <button class="sound-btn" data-sound="school">🏫 School Bell</button>
+                        <button class="sound-btn" data-sound="siren">🚨 Siren</button>
+                    </div>
+                    <button id="testSound" class="test-btn">Test Sound</button>
+                </div>
+
+                <div class="settings-group">
+                    <label class="setting-label">Snooze Settings</label>
+                    <div class="snooze-setting">
+                        <span>Enable Snooze</span>
+                        <label class="toggle">
+                            <input type="checkbox" id="snoozeEnabled" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="snooze-setting" id="snoozeOptions">
+                        <div class="snooze-row">
+                            <span>Snooze Interval</span>
+                            <select id="snoozeInterval">
+                                <option value="1">1 minute</option>
+                                <option value="3">3 minutes</option>
+                                <option value="5" selected>5 minutes</option>
+                                <option value="10">10 minutes</option>
+                                <option value="15">15 minutes</option>
+                                <option value="30">30 minutes</option>
+                            </select>
+                        </div>
+                        <div class="snooze-row">
+                            <span>Max Snoozes</span>
+                            <select id="maxSnoozes">
+                                <option value="1">1 time</option>
+                                <option value="2">2 times</option>
+                                <option value="3" selected>3 times</option>
+                                <option value="5">5 times</option>
+                                <option value="999">Unlimited</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-group">
+                    <label class="setting-label">Audio Priority</label>
+                    <p class="setting-desc">Alarm will attempt to override system volume and mute other audio</p>
+                    <div class="snooze-setting">
+                        <span>Override Audio</span>
+                        <label class="toggle">
+                            <input type="checkbox" id="overrideAudio" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -53,9 +119,19 @@
         <button id="enableNotifications" class="notification-btn">Enable Notifications</button>
     </div>
 
-    <audio id="alarmSound" preload="auto">
-        <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleVkdBEGA2u+0fU0qB0Ry1fW8gk8rCThi0Pi/g08qCjJXzPrChlIrDCdNxvrFiVYuDyJGwPrIjFgvERlAuvnLkFsxFBc8tvnOk14yFhU4svnRl2A0GBQzrvnUmmI1GxIvqvnXnWQ3HRAsqPnanmY4HxApovndn2g5IBAmn/ngomk6IhAjm/nipGs7JBIgmPnkpmw8JRMdlPnnqW49JhUZkfnpr3A/KBcWjvnrsXFAKhkSi/nutnRALBsOiPnxuHZBLR0Lg/n0u3hCLx8Hf/n3vnpEMSEEe/n6wXxFMyMBePn9w35GNScAdfkAAABGNirzc/kDAABGNyz0cPkGAABFOC/zb/kJAABFOTLyb/kMAABEOjTxb/kPAABEOzfwb/kSAABDPDnvb/kVAABDPTzub/kYAABCPj7tb/kbAABCQEHsb/keAABBQUPrb/khAABBQkXqb/kkAABAQ0jpb/knAABARErofvkqAAA/RU3nfvktAAA/RlDmfvkwAAA+R1Llfvkz" type="audio/wav">
-    </audio>
+    <!-- Alarm Modal -->
+    <div id="alarmModal" class="modal">
+        <div class="modal-content">
+            <div class="alarm-icon">⏰</div>
+            <h2 id="alarmTitle">Time's Up!</h2>
+            <p id="alarmTask"></p>
+            <div class="alarm-buttons">
+                <button id="dismissAlarm" class="dismiss-btn">Dismiss</button>
+                <button id="snoozeAlarm" class="snooze-btn">Snooze <span id="snoozeTime">5</span>min</button>
+            </div>
+            <p id="snoozeCount" class="snooze-count"></p>
+        </div>
+    </div>
 
     <script src="app.js"></script>
 </body>
