@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>One Reminder</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>One Reminder</h1>
+
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="datetime">Date & Time</button>
+            <button class="tab-btn" data-tab="countdown">Countdown</button>
+        </div>
+
+        <div class="input-section">
+            <input type="text" id="taskInput" placeholder="Enter task name..." maxlength="100">
+
+            <div id="datetime-tab" class="tab-content active">
+                <div class="datetime-inputs">
+                    <input type="date" id="dateInput">
+                    <input type="time" id="timeInput">
+                </div>
+                <button id="addDatetimeReminder" class="add-btn">Add Reminder</button>
+            </div>
+
+            <div id="countdown-tab" class="tab-content">
+                <div class="countdown-inputs">
+                    <div class="time-unit">
+                        <input type="number" id="hoursInput" min="0" max="99" value="0">
+                        <label>Hours</label>
+                    </div>
+                    <div class="time-unit">
+                        <input type="number" id="minutesInput" min="0" max="59" value="5">
+                        <label>Minutes</label>
+                    </div>
+                    <div class="time-unit">
+                        <input type="number" id="secondsInput" min="0" max="59" value="0">
+                        <label>Seconds</label>
+                    </div>
+                </div>
+                <button id="addCountdownReminder" class="add-btn">Start Timer</button>
+            </div>
+        </div>
+
+        <div class="reminders-section">
+            <h2>Active Reminders <span id="reminderCount">(0)</span></h2>
+            <div id="remindersList"></div>
+        </div>
+
+        <button id="enableNotifications" class="notification-btn">Enable Notifications</button>
+    </div>
+
+    <audio id="alarmSound" preload="auto">
+        <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleVkdBEGA2u+0fU0qB0Ry1fW8gk8rCThi0Pi/g08qCjJXzPrChlIrDCdNxvrFiVYuDyJGwPrIjFgvERlAuvnLkFsxFBc8tvnOk14yFhU4svnRl2A0GBQzrvnUmmI1GxIvqvnXnWQ3HRAsqPnanmY4HxApovndn2g5IBAmn/ngomk6IhAjm/nipGs7JBIgmPnkpmw8JRMdlPnnqW49JhUZkfnpr3A/KBcWjvnrsXFAKhkSi/nutnRALBsOiPnxuHZBLR0Lg/n0u3hCLx8Hf/n3vnpEMSEEe/n6wXxFMyMBePn9w35GNScAdfkAAABGNirzc/kDAABGNyz0cPkGAABFOC/zb/kJAABFOTLyb/kMAABEOjTxb/kPAABEOzfwb/kSAABDPDnvb/kVAABDPTzub/kYAABCPj7tb/kbAABCQEHsb/keAABBQUPrb/khAABBQkXqb/kkAABAQ0jpb/knAABARErofvkqAAA/RU3nfvktAAA/RlDmfvkwAAA+R1Llfvkz" type="audio/wav">
+    </audio>
+
+    <script src="app.js"></script>
+</body>
+</html>
