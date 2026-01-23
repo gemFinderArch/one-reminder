@@ -11,24 +11,20 @@
     <div class="container">
         <h1>⏰ One Reminder</h1>
 
-        <div class="tabs">
-            <button class="tab-btn active" data-tab="datetime">Date & Time</button>
-            <button class="tab-btn" data-tab="countdown">Countdown</button>
-            <button class="tab-btn" data-tab="settings">Settings</button>
-        </div>
-
         <div class="input-section">
-            <input type="text" id="taskInput" placeholder="Enter task name..." maxlength="100">
+            <!-- Event Name -->
+            <input type="text" id="eventName" placeholder="Event name..." maxlength="100">
 
-            <div id="datetime-tab" class="tab-content active">
-                <div class="datetime-inputs">
-                    <input type="date" id="dateInput">
-                    <input type="time" id="timeInput">
-                </div>
-                <button id="addDatetimeReminder" class="add-btn">Add Reminder</button>
+            <!-- Type Selector -->
+            <div class="type-selector">
+                <select id="eventType">
+                    <option value="timer">Timer</option>
+                    <option value="alarm">Alarm</option>
+                </select>
             </div>
 
-            <div id="countdown-tab" class="tab-content">
+            <!-- Timer Options -->
+            <div id="timerOptions" class="event-options">
                 <div class="countdown-inputs">
                     <div class="time-unit">
                         <input type="number" id="hoursInput" min="0" max="99" value="0">
@@ -43,77 +39,56 @@
                         <label>Seconds</label>
                     </div>
                 </div>
-                <button id="addCountdownReminder" class="add-btn">Start Timer</button>
 
                 <div class="recent-timers">
-                    <h3>Recent Timers</h3>
+                    <span class="recent-label">Recent:</span>
                     <div id="recentTimersList"></div>
                 </div>
             </div>
 
-            <div id="settings-tab" class="tab-content">
-                <div class="settings-group">
-                    <label class="setting-label">Alarm Sound</label>
-                    <div class="sound-options">
-                        <button class="sound-btn" data-sound="light">🔔 Light</button>
-                        <button class="sound-btn active" data-sound="strong">🔊 Strong</button>
-                        <button class="sound-btn" data-sound="school">🏫 School Bell</button>
-                        <button class="sound-btn" data-sound="siren">🚨 Siren</button>
-                    </div>
-                    <button id="testSound" class="test-btn">Test Sound</button>
-                </div>
-
-                <div class="settings-group">
-                    <label class="setting-label">Snooze Settings</label>
-                    <div class="snooze-setting">
-                        <span>Enable Snooze</span>
-                        <label class="toggle">
-                            <input type="checkbox" id="snoozeEnabled" checked>
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-                    <div class="snooze-setting" id="snoozeOptions">
-                        <div class="snooze-row">
-                            <span>Snooze Interval</span>
-                            <select id="snoozeInterval">
-                                <option value="1">1 minute</option>
-                                <option value="3">3 minutes</option>
-                                <option value="5" selected>5 minutes</option>
-                                <option value="10">10 minutes</option>
-                                <option value="15">15 minutes</option>
-                                <option value="30">30 minutes</option>
-                            </select>
-                        </div>
-                        <div class="snooze-row">
-                            <span>Max Snoozes</span>
-                            <select id="maxSnoozes">
-                                <option value="1">1 time</option>
-                                <option value="2">2 times</option>
-                                <option value="3" selected>3 times</option>
-                                <option value="5">5 times</option>
-                                <option value="999">Unlimited</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="settings-group">
-                    <label class="setting-label">Audio Priority</label>
-                    <p class="setting-desc">Alarm will attempt to override system volume and mute other audio</p>
-                    <div class="snooze-setting">
-                        <span>Override Audio</span>
-                        <label class="toggle">
-                            <input type="checkbox" id="overrideAudio" checked>
-                            <span class="slider"></span>
-                        </label>
-                    </div>
+            <!-- Alarm Options -->
+            <div id="alarmOptions" class="event-options hidden">
+                <div class="datetime-inputs">
+                    <input type="date" id="dateInput">
+                    <input type="time" id="timeInput">
                 </div>
             </div>
+
+            <!-- Sound Settings (per-reminder) -->
+            <div class="sound-settings">
+                <div class="sound-header">
+                    <span>🔊 Sound</span>
+                    <select id="soundType">
+                        <option value="strong" selected>Strong</option>
+                        <option value="light">Light</option>
+                        <option value="school">School Bell</option>
+                        <option value="siren">Siren</option>
+                        <option value="custom">Custom Upload</option>
+                    </select>
+                </div>
+
+                <div id="customSoundUpload" class="custom-upload hidden">
+                    <input type="file" id="soundFile" accept="audio/*">
+                    <label for="soundFile" class="upload-btn">Choose Audio File</label>
+                    <span id="fileName" class="file-name">No file selected</span>
+                </div>
+
+                <div class="sound-controls">
+                    <label>Volume</label>
+                    <input type="range" id="volumeSlider" min="0" max="100" value="100">
+                    <span id="volumeDisplay">100%</span>
+                    <button id="testSoundBtn" class="test-btn">Test</button>
+                </div>
+            </div>
+
+            <!-- Add Button -->
+            <button id="addEvent" class="add-btn">Start Timer</button>
         </div>
 
-        <div class="reminders-section">
-            <h2>Active Reminders <span id="reminderCount">(0)</span></h2>
-            <div id="remindersList"></div>
+        <!-- Active Sessions -->
+        <div class="sessions-section">
+            <h2>Active Sessions <span id="sessionCount">(0)</span></h2>
+            <div id="sessionsList"></div>
         </div>
 
         <button id="enableNotifications" class="notification-btn">Enable Notifications</button>
@@ -123,13 +98,15 @@
     <div id="alarmModal" class="modal">
         <div class="modal-content">
             <div class="alarm-icon">⏰</div>
-            <h2 id="alarmTitle">Time's Up!</h2>
+            <h2>Time's Up!</h2>
             <p id="alarmTask"></p>
-            <div class="alarm-buttons">
+            <div class="alarm-controls">
                 <button id="dismissAlarm" class="dismiss-btn">Dismiss</button>
-                <button id="snoozeAlarm" class="snooze-btn">Snooze <span id="snoozeTime">5</span>min</button>
+                <div class="snooze-controls">
+                    <input type="number" id="snoozeMinutes" min="1" max="999" value="5" placeholder="min">
+                    <button id="snoozeAlarm" class="snooze-btn">Snooze</button>
+                </div>
             </div>
-            <p id="snoozeCount" class="snooze-count"></p>
         </div>
     </div>
 
