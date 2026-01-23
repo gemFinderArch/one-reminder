@@ -2,26 +2,21 @@
 
 class ReminderApp {
     constructor() {
-        this.reminders = [];
+        this.sessions = [];
         this.nextId = 1;
         this.audioContext = null;
         this.notificationPermission = Notification.permission;
-        this.activeAlarm = null;
-        this.alarmInterval = null;
+        this.currentAlarmSession = null;
+        this.alarmAudioSource = null;
         this.alarmTimeout = null;
-        this.currentAlarmReminder = null;
-
-        // Settings
-        this.settings = {
-            soundType: 'strong',
-            snoozeEnabled: true,
-            snoozeInterval: 5,
-            maxSnoozes: 3,
-            overrideAudio: true
-        };
+        this.customAudioBuffer = null;
+        this.customAudioData = null; // Base64 for storage
 
         // Recent timers (last 8)
         this.recentTimers = [];
+
+        // Custom sounds storage (per session)
+        this.customSounds = {}; // id -> {data, name}
 
         this.init();
     }
@@ -33,186 +28,180 @@ class ReminderApp {
         this.loadData();
         this.updateNotificationButton();
         this.renderRecentTimers();
+        this.renderSessions();
         this.startUpdateLoop();
     }
 
     bindElements() {
-        this.taskInput = document.getElementById('taskInput');
-        this.dateInput = document.getElementById('dateInput');
-        this.timeInput = document.getElementById('timeInput');
+        this.eventName = document.getElementById('eventName');
+        this.eventType = document.getElementById('eventType');
+        this.timerOptions = document.getElementById('timerOptions');
+        this.alarmOptions = document.getElementById('alarmOptions');
         this.hoursInput = document.getElementById('hoursInput');
         this.minutesInput = document.getElementById('minutesInput');
         this.secondsInput = document.getElementById('secondsInput');
-        this.addDatetimeBtn = document.getElementById('addDatetimeReminder');
-        this.addCountdownBtn = document.getElementById('addCountdownReminder');
-        this.remindersList = document.getElementById('remindersList');
-        this.reminderCount = document.getElementById('reminderCount');
-        this.notificationBtn = document.getElementById('enableNotifications');
-        this.tabBtns = document.querySelectorAll('.tab-btn');
-        this.soundBtns = document.querySelectorAll('.sound-btn');
-        this.testSoundBtn = document.getElementById('testSound');
-        this.snoozeEnabledCheckbox = document.getElementById('snoozeEnabled');
-        this.snoozeIntervalSelect = document.getElementById('snoozeInterval');
-        this.maxSnoozesSelect = document.getElementById('maxSnoozes');
-        this.overrideAudioCheckbox = document.getElementById('overrideAudio');
-        this.snoozeOptions = document.getElementById('snoozeOptions');
+        this.dateInput = document.getElementById('dateInput');
+        this.timeInput = document.getElementById('timeInput');
+        this.soundType = document.getElementById('soundType');
+        this.customSoundUpload = document.getElementById('customSoundUpload');
+        this.soundFile = document.getElementById('soundFile');
+        this.fileName = document.getElementById('fileName');
+        this.volumeSlider = document.getElementById('volumeSlider');
+        this.volumeDisplay = document.getElementById('volumeDisplay');
+        this.testSoundBtn = document.getElementById('testSoundBtn');
+        this.addEventBtn = document.getElementById('addEvent');
+        this.sessionsList = document.getElementById('sessionsList');
+        this.sessionCount = document.getElementById('sessionCount');
         this.recentTimersList = document.getElementById('recentTimersList');
+        this.notificationBtn = document.getElementById('enableNotifications');
 
         // Modal elements
         this.alarmModal = document.getElementById('alarmModal');
         this.alarmTask = document.getElementById('alarmTask');
         this.dismissBtn = document.getElementById('dismissAlarm');
         this.snoozeBtn = document.getElementById('snoozeAlarm');
-        this.snoozeTime = document.getElementById('snoozeTime');
-        this.snoozeCountDisplay = document.getElementById('snoozeCount');
+        this.snoozeMinutes = document.getElementById('snoozeMinutes');
     }
 
     bindEvents() {
-        this.addDatetimeBtn.addEventListener('click', () => this.addDatetimeReminder());
-        this.addCountdownBtn.addEventListener('click', () => this.addCountdownReminder());
+        this.eventType.addEventListener('change', () => this.toggleEventType());
+        this.addEventBtn.addEventListener('click', () => this.addEvent());
         this.notificationBtn.addEventListener('click', () => this.requestNotificationPermission());
         this.testSoundBtn.addEventListener('click', () => this.testSound());
         this.dismissBtn.addEventListener('click', () => this.dismissAlarm());
         this.snoozeBtn.addEventListener('click', () => this.snoozeAlarm());
 
-        this.tabBtns.forEach(btn => {
-            btn.addEventListener('click', () => this.switchTab(btn.dataset.tab));
+        this.soundType.addEventListener('change', () => {
+            this.customSoundUpload.classList.toggle('hidden', this.soundType.value !== 'custom');
         });
 
-        this.soundBtns.forEach(btn => {
-            btn.addEventListener('click', () => this.selectSound(btn.dataset.sound));
-        });
+        this.soundFile.addEventListener('change', (e) => this.handleFileUpload(e));
 
-        // Settings changes
-        this.snoozeEnabledCheckbox.addEventListener('change', () => {
-            this.settings.snoozeEnabled = this.snoozeEnabledCheckbox.checked;
-            this.snoozeOptions.style.display = this.settings.snoozeEnabled ? 'block' : 'none';
-            this.saveSettings();
-        });
-
-        this.snoozeIntervalSelect.addEventListener('change', () => {
-            this.settings.snoozeInterval = parseInt(this.snoozeIntervalSelect.value);
-            this.saveSettings();
-        });
-
-        this.maxSnoozesSelect.addEventListener('change', () => {
-            this.settings.maxSnoozes = parseInt(this.maxSnoozesSelect.value);
-            this.saveSettings();
-        });
-
-        this.overrideAudioCheckbox.addEventListener('change', () => {
-            this.settings.overrideAudio = this.overrideAudioCheckbox.checked;
-            this.saveSettings();
+        this.volumeSlider.addEventListener('input', () => {
+            this.volumeDisplay.textContent = this.volumeSlider.value + '%';
         });
 
         // Enter key support
-        this.taskInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                const activeTab = document.querySelector('.tab-content.active').id;
-                if (activeTab === 'datetime-tab') {
-                    this.addDatetimeReminder();
-                } else if (activeTab === 'countdown-tab') {
-                    this.addCountdownReminder();
-                }
-            }
+        this.eventName.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.addEvent();
         });
     }
 
-    switchTab(tabName) {
-        this.tabBtns.forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.tab === tabName);
-        });
-        document.querySelectorAll('.tab-content').forEach(content => {
-            content.classList.toggle('active', content.id === `${tabName}-tab`);
-        });
-    }
-
-    selectSound(soundType) {
-        this.settings.soundType = soundType;
-        this.soundBtns.forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.sound === soundType);
-        });
-        this.saveSettings();
+    toggleEventType() {
+        const isTimer = this.eventType.value === 'timer';
+        this.timerOptions.classList.toggle('hidden', !isTimer);
+        this.alarmOptions.classList.toggle('hidden', isTimer);
+        this.addEventBtn.textContent = isTimer ? 'Start Timer' : 'Set Alarm';
     }
 
     setDefaultDateTime() {
         const now = new Date();
+        now.setMinutes(now.getMinutes() + 5);
         const date = now.toISOString().split('T')[0];
         const time = now.toTimeString().slice(0, 5);
 
         this.dateInput.value = date;
-        this.dateInput.min = date;
+        this.dateInput.min = new Date().toISOString().split('T')[0];
         this.timeInput.value = time;
     }
 
-    addDatetimeReminder() {
-        const task = this.taskInput.value.trim() || 'Reminder';
-        const date = this.dateInput.value;
-        const time = this.timeInput.value;
+    async handleFileUpload(e) {
+        const file = e.target.files[0];
+        if (!file) return;
 
-        if (!date || !time) {
-            alert('Please select both date and time');
-            return;
-        }
+        this.fileName.textContent = file.name;
 
-        const targetTime = new Date(`${date}T${time}`);
-        if (targetTime <= new Date()) {
-            alert('Please select a future date and time');
-            return;
-        }
+        // Read as base64 for storage
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            this.customAudioData = event.target.result;
 
-        const reminder = {
-            id: this.nextId++,
-            task,
-            targetTime: targetTime.getTime(),
-            type: 'datetime',
-            triggered: false,
-            snoozeCount: 0
+            // Also decode for playback
+            if (!this.audioContext) {
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                this.customAudioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+            } catch (err) {
+                console.error('Failed to decode audio:', err);
+                alert('Could not load audio file. Please try a different format.');
+            }
         };
-
-        this.reminders.push(reminder);
-        this.saveReminders();
-        this.renderReminders();
-        this.taskInput.value = '';
-        this.setDefaultDateTime();
+        reader.readAsDataURL(file);
     }
 
-    addCountdownReminder() {
-        const task = this.taskInput.value.trim() || 'Timer';
-        const hours = parseInt(this.hoursInput.value) || 0;
-        const minutes = parseInt(this.minutesInput.value) || 0;
-        const seconds = parseInt(this.secondsInput.value) || 0;
+    addEvent() {
+        const name = this.eventName.value.trim() || (this.eventType.value === 'timer' ? 'Timer' : 'Alarm');
+        const type = this.eventType.value;
+        const soundType = this.soundType.value;
+        const volume = parseInt(this.volumeSlider.value) / 100;
 
-        const totalSeconds = hours * 3600 + minutes * 60 + seconds;
-        if (totalSeconds <= 0) {
-            alert('Please set a countdown time');
-            return;
+        let targetTime;
+        let originalDuration = null;
+
+        if (type === 'timer') {
+            const hours = parseInt(this.hoursInput.value) || 0;
+            const minutes = parseInt(this.minutesInput.value) || 0;
+            const seconds = parseInt(this.secondsInput.value) || 0;
+            const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+
+            if (totalSeconds <= 0) {
+                alert('Please set a countdown time');
+                return;
+            }
+
+            this.addRecentTimer(hours, minutes, seconds);
+            targetTime = Date.now() + totalSeconds * 1000;
+            originalDuration = totalSeconds * 1000;
+        } else {
+            const date = this.dateInput.value;
+            const time = this.timeInput.value;
+
+            if (!date || !time) {
+                alert('Please select both date and time');
+                return;
+            }
+
+            targetTime = new Date(`${date}T${time}`).getTime();
+            if (targetTime <= Date.now()) {
+                alert('Please select a future date and time');
+                return;
+            }
         }
 
-        // Save to recent timers
-        this.addRecentTimer(hours, minutes, seconds);
-
-        const targetTime = Date.now() + totalSeconds * 1000;
-
-        const reminder = {
+        const session = {
             id: this.nextId++,
-            task,
+            name,
+            type,
             targetTime,
-            type: 'countdown',
-            originalDuration: totalSeconds * 1000,
+            originalDuration,
+            soundType,
+            volume,
+            customSound: soundType === 'custom' ? this.customAudioData : null,
+            customSoundName: soundType === 'custom' ? this.fileName.textContent : null,
             triggered: false,
             snoozeCount: 0
         };
 
-        this.reminders.push(reminder);
-        this.saveReminders();
-        this.renderReminders();
-        this.taskInput.value = '';
+        this.sessions.push(session);
+        this.saveSessions();
+        this.renderSessions();
+
+        // Reset form
+        this.eventName.value = '';
+        this.soundType.value = 'strong';
+        this.customSoundUpload.classList.add('hidden');
+        this.volumeSlider.value = 100;
+        this.volumeDisplay.textContent = '100%';
+        this.customAudioData = null;
+        this.customAudioBuffer = null;
+        this.fileName.textContent = 'No file selected';
+        this.soundFile.value = '';
     }
 
     addRecentTimer(hours, minutes, seconds) {
-        const timerKey = `${hours}:${minutes}:${seconds}`;
-
         // Remove if already exists
         this.recentTimers = this.recentTimers.filter(t =>
             !(t.hours === hours && t.minutes === minutes && t.seconds === seconds)
@@ -230,13 +219,13 @@ class ReminderApp {
 
     renderRecentTimers() {
         if (this.recentTimers.length === 0) {
-            this.recentTimersList.innerHTML = '<span style="color:#555">No recent timers</span>';
+            this.recentTimersList.innerHTML = '<span style="color:#555;font-size:0.8rem">None yet</span>';
             return;
         }
 
         this.recentTimersList.innerHTML = this.recentTimers.map(timer => {
             const label = this.formatTimerLabel(timer.hours, timer.minutes, timer.seconds);
-            return `<button class="recent-timer-btn" onclick="app.useRecentTimer(${timer.hours}, ${timer.minutes}, ${timer.seconds})">${label}</button>`;
+            return `<button class="recent-timer-btn" onclick="app.startRecentTimer(${timer.hours}, ${timer.minutes}, ${timer.seconds})">${label}</button>`;
         }).join('');
     }
 
@@ -248,35 +237,59 @@ class ReminderApp {
         return parts.join(' ');
     }
 
-    useRecentTimer(hours, minutes, seconds) {
-        this.hoursInput.value = hours;
-        this.minutesInput.value = minutes;
-        this.secondsInput.value = seconds;
-    }
+    startRecentTimer(hours, minutes, seconds) {
+        const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+        const name = this.eventName.value.trim() || 'Timer';
 
-    repeatReminder(id) {
-        const reminder = this.reminders.find(r => r.id === id);
-        if (!reminder || reminder.type !== 'countdown' || !reminder.originalDuration) return;
-
-        const newReminder = {
+        const session = {
             id: this.nextId++,
-            task: reminder.task,
-            targetTime: Date.now() + reminder.originalDuration,
-            type: 'countdown',
-            originalDuration: reminder.originalDuration,
+            name,
+            type: 'timer',
+            targetTime: Date.now() + totalSeconds * 1000,
+            originalDuration: totalSeconds * 1000,
+            soundType: 'strong',
+            volume: 1,
+            customSound: null,
             triggered: false,
             snoozeCount: 0
         };
 
-        this.reminders.push(newReminder);
-        this.saveReminders();
-        this.renderReminders();
+        this.sessions.push(session);
+        this.saveSessions();
+        this.renderSessions();
+        this.eventName.value = '';
+
+        // Move to front of recent
+        this.addRecentTimer(hours, minutes, seconds);
     }
 
-    deleteReminder(id) {
-        this.reminders = this.reminders.filter(r => r.id !== id);
-        this.saveReminders();
-        this.renderReminders();
+    repeatSession(id) {
+        const session = this.sessions.find(s => s.id === id);
+        if (!session || !session.originalDuration) return;
+
+        const newSession = {
+            id: this.nextId++,
+            name: session.name,
+            type: session.type,
+            targetTime: Date.now() + session.originalDuration,
+            originalDuration: session.originalDuration,
+            soundType: session.soundType,
+            volume: session.volume,
+            customSound: session.customSound,
+            customSoundName: session.customSoundName,
+            triggered: false,
+            snoozeCount: 0
+        };
+
+        this.sessions.push(newSession);
+        this.saveSessions();
+        this.renderSessions();
+    }
+
+    deleteSession(id) {
+        this.sessions = this.sessions.filter(s => s.id !== id);
+        this.saveSessions();
+        this.renderSessions();
     }
 
     formatTimeRemaining(ms) {
@@ -300,40 +313,40 @@ class ReminderApp {
         });
     }
 
-    renderReminders() {
-        this.reminderCount.textContent = `(${this.reminders.length})`;
+    renderSessions() {
+        this.sessionCount.textContent = `(${this.sessions.length})`;
 
-        if (this.reminders.length === 0) {
-            this.remindersList.innerHTML = '<div class="empty-state">No active reminders</div>';
+        if (this.sessions.length === 0) {
+            this.sessionsList.innerHTML = '<div class="empty-state">No active sessions</div>';
             return;
         }
 
-        // Sort by target time
-        const sorted = [...this.reminders].sort((a, b) => a.targetTime - b.targetTime);
+        const sorted = [...this.sessions].sort((a, b) => a.targetTime - b.targetTime);
 
-        this.remindersList.innerHTML = sorted.map(reminder => {
-            const remaining = reminder.targetTime - Date.now();
+        this.sessionsList.innerHTML = sorted.map(session => {
+            const remaining = session.targetTime - Date.now();
             const countdownClass = remaining <= 60000 ? 'critical' : remaining <= 300000 ? 'warning' : '';
-            const alertingClass = reminder.triggered ? 'alerting' : '';
-            const repeatBtn = reminder.type === 'countdown' && reminder.originalDuration
-                ? `<button class="repeat-btn" onclick="app.repeatReminder(${reminder.id})" title="Repeat">↻</button>`
+            const typeClass = session.type;
+            const repeatBtn = session.originalDuration
+                ? `<button class="repeat-btn" onclick="app.repeatSession(${session.id})" title="Repeat">↻</button>`
                 : '';
 
             return `
-                <div class="reminder-card ${alertingClass}" data-id="${reminder.id}">
-                    <div class="reminder-info">
-                        <div class="reminder-task">${this.escapeHtml(reminder.task)}</div>
-                        <div class="reminder-time">
-                            ${reminder.type === 'datetime' ? this.formatDateTime(reminder.targetTime) : 'Countdown Timer'}
-                            ${reminder.snoozeCount > 0 ? ` (Snoozed ${reminder.snoozeCount}x)` : ''}
+                <div class="session-card ${typeClass}" data-id="${session.id}">
+                    <div class="session-info">
+                        <div class="session-name">${this.escapeHtml(session.name)}</div>
+                        <div class="session-meta">
+                            <span class="session-type ${typeClass}">${session.type.toUpperCase()}</span>
+                            ${session.type === 'alarm' ? this.formatDateTime(session.targetTime) : ''}
+                            ${session.snoozeCount > 0 ? `(Snoozed ${session.snoozeCount}x)` : ''}
                         </div>
                     </div>
-                    <div class="reminder-actions">
-                        <div class="reminder-countdown ${countdownClass}">
+                    <div class="session-actions">
+                        <div class="session-countdown ${countdownClass}">
                             ${this.formatTimeRemaining(remaining)}
                         </div>
                         ${repeatBtn}
-                        <button class="delete-btn" onclick="app.deleteReminder(${reminder.id})">×</button>
+                        <button class="delete-btn" onclick="app.deleteSession(${session.id})">×</button>
                     </div>
                 </div>
             `;
@@ -348,33 +361,36 @@ class ReminderApp {
 
     startUpdateLoop() {
         setInterval(() => {
-            this.checkReminders();
-            this.renderReminders();
+            this.checkSessions();
+            this.renderSessions();
         }, 1000);
     }
 
-    checkReminders() {
+    checkSessions() {
         const now = Date.now();
 
-        this.reminders.forEach(reminder => {
-            if (!reminder.triggered && now >= reminder.targetTime) {
-                reminder.triggered = true;
-                this.triggerAlert(reminder);
+        this.sessions.forEach(session => {
+            if (!session.triggered && now >= session.targetTime) {
+                session.triggered = true;
+                this.triggerAlarm(session);
             }
         });
     }
 
-    triggerAlert(reminder) {
-        this.currentAlarmReminder = reminder;
+    triggerAlarm(session) {
+        this.currentAlarmSession = session;
+
+        // Pause other media
+        this.pauseOtherMedia();
 
         // Show modal
-        this.showAlarmModal(reminder);
+        this.showAlarmModal(session);
 
-        // Start continuous alarm sound (60 minutes max)
-        this.startAlarmSound();
+        // Start continuous alarm sound
+        this.startAlarmSound(session);
 
         // Send notification
-        this.sendNotification(reminder.task);
+        this.sendNotification(session.name);
 
         // Auto-stop after 60 minutes
         this.alarmTimeout = setTimeout(() => {
@@ -382,25 +398,25 @@ class ReminderApp {
         }, 60 * 60 * 1000);
     }
 
-    showAlarmModal(reminder) {
-        this.alarmTask.textContent = reminder.task;
-        this.snoozeTime.textContent = this.settings.snoozeInterval;
+    pauseOtherMedia() {
+        // Pause all HTML5 audio/video elements on the page
+        document.querySelectorAll('audio, video').forEach(el => {
+            if (!el.paused) el.pause();
+        });
 
-        const canSnooze = this.settings.snoozeEnabled &&
-            reminder.snoozeCount < this.settings.maxSnoozes;
-
-        this.snoozeBtn.disabled = !canSnooze;
-        this.snoozeBtn.style.display = this.settings.snoozeEnabled ? 'block' : 'none';
-
-        if (this.settings.snoozeEnabled && this.settings.maxSnoozes < 999) {
-            const remaining = this.settings.maxSnoozes - reminder.snoozeCount;
-            this.snoozeCountDisplay.textContent = `${remaining} snooze${remaining !== 1 ? 's' : ''} remaining`;
-        } else {
-            this.snoozeCountDisplay.textContent = '';
+        // Try to pause via Media Session API (for YouTube, Spotify, etc.)
+        if ('mediaSession' in navigator) {
+            try {
+                // This signals to the browser that we want audio focus
+                navigator.mediaSession.playbackState = 'playing';
+            } catch (e) {}
         }
+    }
 
+    showAlarmModal(session) {
+        this.alarmTask.textContent = session.name;
         this.alarmModal.classList.add('active');
-        document.title = '⏰ ALARM! - One Reminder';
+        document.title = '⏰ ALARM! - ' + session.name;
     }
 
     hideAlarmModal() {
@@ -408,58 +424,101 @@ class ReminderApp {
         document.title = 'One Reminder';
     }
 
-    startAlarmSound() {
+    async startAlarmSound(session) {
         this.stopAlarmSound();
 
         if (!this.audioContext) {
             this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
         }
 
-        // Resume audio context if suspended
         if (this.audioContext.state === 'suspended') {
-            this.audioContext.resume();
+            await this.audioContext.resume();
         }
 
-        // Play alarm based on sound type
-        const playAlarm = () => {
+        // Load custom sound if needed
+        if (session.soundType === 'custom' && session.customSound) {
+            await this.loadCustomSound(session.customSound);
+        }
+
+        // Play sound in continuous loop
+        this.playAlarmLoop(session);
+    }
+
+    async loadCustomSound(dataUrl) {
+        try {
+            const response = await fetch(dataUrl);
+            const arrayBuffer = await response.arrayBuffer();
+            this.customAudioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+        } catch (err) {
+            console.error('Failed to load custom sound:', err);
+            this.customAudioBuffer = null;
+        }
+    }
+
+    playAlarmLoop(session) {
+        if (!this.alarmModal.classList.contains('active')) return;
+
+        const volume = session.volume || 1;
+
+        if (session.soundType === 'custom' && this.customAudioBuffer) {
+            this.playCustomSoundLoop(volume);
+        } else {
+            this.playBuiltInSoundLoop(session.soundType, volume);
+        }
+    }
+
+    playCustomSoundLoop(volume) {
+        if (!this.customAudioBuffer || !this.alarmModal.classList.contains('active')) return;
+
+        const source = this.audioContext.createBufferSource();
+        const gainNode = this.audioContext.createGain();
+
+        source.buffer = this.customAudioBuffer;
+        source.connect(gainNode);
+        gainNode.connect(this.audioContext.destination);
+        gainNode.gain.value = volume;
+
+        source.loop = true;
+        source.start(0);
+
+        this.alarmAudioSource = source;
+    }
+
+    playBuiltInSoundLoop(soundType, volume) {
+        if (!this.alarmModal.classList.contains('active')) return;
+
+        const playOnce = () => {
             if (!this.alarmModal.classList.contains('active')) return;
 
-            switch (this.settings.soundType) {
+            switch (soundType) {
                 case 'light':
-                    this.playLightAlarm();
+                    this.playLightAlarm(volume);
                     break;
                 case 'strong':
-                    this.playStrongAlarm();
+                default:
+                    this.playStrongAlarm(volume);
                     break;
                 case 'school':
-                    this.playSchoolBell();
+                    this.playSchoolBell(volume);
                     break;
                 case 'siren':
-                    this.playSiren();
+                    this.playSiren(volume);
                     break;
             }
         };
 
-        // Play immediately and repeat
-        playAlarm();
-        this.alarmInterval = setInterval(playAlarm, 3000);
+        playOnce();
+
+        // Get duration based on sound type and schedule next play
+        const durations = { light: 1000, strong: 1200, school: 2000, siren: 2500 };
+        const duration = durations[soundType] || 1200;
+
+        this.alarmAudioSource = setInterval(playOnce, duration);
     }
 
-    stopAlarmSound() {
-        if (this.alarmInterval) {
-            clearInterval(this.alarmInterval);
-            this.alarmInterval = null;
-        }
-        if (this.alarmTimeout) {
-            clearTimeout(this.alarmTimeout);
-            this.alarmTimeout = null;
-        }
-    }
-
-    playLightAlarm() {
+    playLightAlarm(volume = 1) {
         const ctx = this.audioContext;
         const now = ctx.currentTime;
-        const volume = 0.3;
 
         for (let i = 0; i < 3; i++) {
             const osc = ctx.createOscillator();
@@ -468,53 +527,52 @@ class ReminderApp {
             gain.connect(ctx.destination);
             osc.frequency.value = 880;
             osc.type = 'sine';
-            gain.gain.setValueAtTime(volume, now + i * 0.3);
-            gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.3 + 0.2);
-            osc.start(now + i * 0.3);
-            osc.stop(now + i * 0.3 + 0.25);
+            gain.gain.setValueAtTime(0.3 * volume, now + i * 0.25);
+            gain.gain.setValueAtTime(0.3 * volume, now + i * 0.25 + 0.2);
+            gain.gain.linearRampToValueAtTime(0, now + i * 0.25 + 0.25);
+            osc.start(now + i * 0.25);
+            osc.stop(now + i * 0.25 + 0.25);
         }
     }
 
-    playStrongAlarm() {
+    playStrongAlarm(volume = 1) {
         const ctx = this.audioContext;
         const now = ctx.currentTime;
-        const volume = 0.8;
 
+        // Continuous alternating tones - no gaps
         for (let i = 0; i < 6; i++) {
-            const osc = ctx.createOscillator();
+            const osc1 = ctx.createOscillator();
             const osc2 = ctx.createOscillator();
             const gain = ctx.createGain();
 
-            osc.connect(gain);
+            osc1.connect(gain);
             osc2.connect(gain);
             gain.connect(ctx.destination);
 
-            osc.frequency.value = i % 2 === 0 ? 800 : 1000;
-            osc2.frequency.value = i % 2 === 0 ? 802 : 1003; // Slight detune for loudness
-            osc.type = 'square';
+            const freq = i % 2 === 0 ? 800 : 1000;
+            osc1.frequency.value = freq;
+            osc2.frequency.value = freq + 3; // Slight detune for "beating" effect
+            osc1.type = 'square';
             osc2.type = 'square';
 
             const t = now + i * 0.2;
-            gain.gain.setValueAtTime(volume, t);
-            gain.gain.exponentialRampToValueAtTime(0.01, t + 0.15);
+            gain.gain.setValueAtTime(0.7 * volume, t);
+            gain.gain.setValueAtTime(0.7 * volume, t + 0.19);
+            gain.gain.linearRampToValueAtTime(0, t + 0.2);
 
-            osc.start(t);
-            osc.stop(t + 0.18);
+            osc1.start(t);
+            osc1.stop(t + 0.2);
             osc2.start(t);
-            osc2.stop(t + 0.18);
+            osc2.stop(t + 0.2);
         }
     }
 
-    playSchoolBell() {
+    playSchoolBell(volume = 1) {
         const ctx = this.audioContext;
         const now = ctx.currentTime;
-        const volume = 1.0;
 
-        // School bell - loud metallic ring
         for (let ring = 0; ring < 4; ring++) {
             const baseTime = now + ring * 0.5;
-
-            // Multiple harmonics for bell sound
             const frequencies = [523, 659, 784, 1047, 1319];
 
             frequencies.forEach((freq, i) => {
@@ -527,33 +585,32 @@ class ReminderApp {
                 osc.frequency.value = freq;
                 osc.type = 'sine';
 
-                const harmonicVolume = volume / (i + 1);
+                const harmonicVolume = (volume / (i + 1)) * 0.8;
                 gain.gain.setValueAtTime(harmonicVolume, baseTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, baseTime + 0.4);
+                gain.gain.exponentialRampToValueAtTime(0.01, baseTime + 0.45);
 
                 osc.start(baseTime);
-                osc.stop(baseTime + 0.45);
+                osc.stop(baseTime + 0.5);
             });
 
-            // Add sharp attack
+            // Sharp attack
             const noise = ctx.createOscillator();
             const noiseGain = ctx.createGain();
             noise.connect(noiseGain);
             noiseGain.connect(ctx.destination);
             noise.frequency.value = 2000;
             noise.type = 'triangle';
-            noiseGain.gain.setValueAtTime(0.5, baseTime);
+            noiseGain.gain.setValueAtTime(0.4 * volume, baseTime);
             noiseGain.gain.exponentialRampToValueAtTime(0.01, baseTime + 0.05);
             noise.start(baseTime);
             noise.stop(baseTime + 0.06);
         }
     }
 
-    playSiren() {
+    playSiren(volume = 1) {
         const ctx = this.audioContext;
         const now = ctx.currentTime;
-        const duration = 2.5;
-        const volume = 0.9;
+        const duration = 2.4;
 
         const osc = ctx.createOscillator();
         const osc2 = ctx.createOscillator();
@@ -566,24 +623,20 @@ class ReminderApp {
         osc.type = 'sawtooth';
         osc2.type = 'sawtooth';
 
-        // Wailing siren effect
-        osc.frequency.setValueAtTime(400, now);
-        osc.frequency.linearRampToValueAtTime(800, now + 0.5);
-        osc.frequency.linearRampToValueAtTime(400, now + 1);
-        osc.frequency.linearRampToValueAtTime(800, now + 1.5);
-        osc.frequency.linearRampToValueAtTime(400, now + 2);
-        osc.frequency.linearRampToValueAtTime(800, now + 2.5);
+        // Continuous wailing
+        for (let i = 0; i < 5; i++) {
+            const t = now + i * 0.5;
+            osc.frequency.setValueAtTime(400, t);
+            osc.frequency.linearRampToValueAtTime(800, t + 0.25);
+            osc.frequency.linearRampToValueAtTime(400, t + 0.5);
+            osc2.frequency.setValueAtTime(402, t);
+            osc2.frequency.linearRampToValueAtTime(804, t + 0.25);
+            osc2.frequency.linearRampToValueAtTime(402, t + 0.5);
+        }
 
-        osc2.frequency.setValueAtTime(402, now);
-        osc2.frequency.linearRampToValueAtTime(804, now + 0.5);
-        osc2.frequency.linearRampToValueAtTime(402, now + 1);
-        osc2.frequency.linearRampToValueAtTime(804, now + 1.5);
-        osc2.frequency.linearRampToValueAtTime(402, now + 2);
-        osc2.frequency.linearRampToValueAtTime(804, now + 2.5);
-
-        gain.gain.setValueAtTime(volume, now);
-        gain.gain.setValueAtTime(volume, now + duration - 0.1);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
+        gain.gain.setValueAtTime(0.8 * volume, now);
+        gain.gain.setValueAtTime(0.8 * volume, now + duration - 0.05);
+        gain.gain.linearRampToValueAtTime(0, now + duration);
 
         osc.start(now);
         osc.stop(now + duration);
@@ -600,19 +653,49 @@ class ReminderApp {
             this.audioContext.resume();
         }
 
-        switch (this.settings.soundType) {
-            case 'light':
-                this.playLightAlarm();
-                break;
-            case 'strong':
-                this.playStrongAlarm();
-                break;
-            case 'school':
-                this.playSchoolBell();
-                break;
-            case 'siren':
-                this.playSiren();
-                break;
+        const volume = parseInt(this.volumeSlider.value) / 100;
+        const soundType = this.soundType.value;
+
+        if (soundType === 'custom' && this.customAudioBuffer) {
+            const source = this.audioContext.createBufferSource();
+            const gainNode = this.audioContext.createGain();
+            source.buffer = this.customAudioBuffer;
+            source.connect(gainNode);
+            gainNode.connect(this.audioContext.destination);
+            gainNode.gain.value = volume;
+            source.start(0);
+            setTimeout(() => source.stop(), 3000);
+        } else {
+            switch (soundType) {
+                case 'light':
+                    this.playLightAlarm(volume);
+                    break;
+                case 'strong':
+                default:
+                    this.playStrongAlarm(volume);
+                    break;
+                case 'school':
+                    this.playSchoolBell(volume);
+                    break;
+                case 'siren':
+                    this.playSiren(volume);
+                    break;
+            }
+        }
+    }
+
+    stopAlarmSound() {
+        if (this.alarmAudioSource) {
+            if (typeof this.alarmAudioSource === 'number') {
+                clearInterval(this.alarmAudioSource);
+            } else if (this.alarmAudioSource.stop) {
+                try { this.alarmAudioSource.stop(); } catch (e) {}
+            }
+            this.alarmAudioSource = null;
+        }
+        if (this.alarmTimeout) {
+            clearTimeout(this.alarmTimeout);
+            this.alarmTimeout = null;
         }
     }
 
@@ -620,37 +703,36 @@ class ReminderApp {
         this.stopAlarmSound();
         this.hideAlarmModal();
 
-        if (this.currentAlarmReminder) {
-            this.deleteReminder(this.currentAlarmReminder.id);
-            this.currentAlarmReminder = null;
+        if (this.currentAlarmSession) {
+            this.deleteSession(this.currentAlarmSession.id);
+            this.currentAlarmSession = null;
         }
     }
 
     snoozeAlarm() {
-        if (!this.currentAlarmReminder) return;
-        if (!this.settings.snoozeEnabled) return;
-        if (this.currentAlarmReminder.snoozeCount >= this.settings.maxSnoozes) return;
+        if (!this.currentAlarmSession) return;
+
+        const minutes = parseInt(this.snoozeMinutes.value) || 5;
 
         this.stopAlarmSound();
         this.hideAlarmModal();
 
-        // Update reminder with new target time
-        const reminder = this.reminders.find(r => r.id === this.currentAlarmReminder.id);
-        if (reminder) {
-            reminder.triggered = false;
-            reminder.snoozeCount++;
-            reminder.targetTime = Date.now() + this.settings.snoozeInterval * 60 * 1000;
-            this.saveReminders();
-            this.renderReminders();
+        const session = this.sessions.find(s => s.id === this.currentAlarmSession.id);
+        if (session) {
+            session.triggered = false;
+            session.snoozeCount++;
+            session.targetTime = Date.now() + minutes * 60 * 1000;
+            this.saveSessions();
+            this.renderSessions();
         }
 
-        this.currentAlarmReminder = null;
+        this.currentAlarmSession = null;
     }
 
-    sendNotification(task) {
+    sendNotification(name) {
         if (Notification.permission === 'granted') {
-            const notification = new Notification('⏰ One Reminder - ALARM!', {
-                body: `Time's up: ${task}`,
+            const notification = new Notification('⏰ One Reminder', {
+                body: `Time's up: ${name}`,
                 icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">⏰</text></svg>',
                 requireInteraction: true,
                 tag: 'one-reminder-alarm',
@@ -671,7 +753,7 @@ class ReminderApp {
                 this.updateNotificationButton();
             });
         } else {
-            alert('Notifications are not supported in this browser');
+            alert('Notifications not supported');
         }
     }
 
@@ -687,13 +769,29 @@ class ReminderApp {
         }
     }
 
-    saveReminders() {
-        localStorage.setItem('oneReminder_reminders', JSON.stringify(this.reminders));
+    saveSessions() {
+        // Don't save custom sound data in main sessions (too large)
+        const toSave = this.sessions.map(s => ({
+            ...s,
+            customSound: s.customSound ? 'stored' : null
+        }));
+        localStorage.setItem('oneReminder_sessions', JSON.stringify(toSave));
         localStorage.setItem('oneReminder_nextId', this.nextId.toString());
-    }
 
-    saveSettings() {
-        localStorage.setItem('oneReminder_settings', JSON.stringify(this.settings));
+        // Save custom sounds separately
+        const customSounds = {};
+        this.sessions.forEach(s => {
+            if (s.customSound && s.customSound !== 'stored') {
+                customSounds[s.id] = { data: s.customSound, name: s.customSoundName };
+            }
+        });
+        if (Object.keys(customSounds).length > 0) {
+            try {
+                localStorage.setItem('oneReminder_customSounds', JSON.stringify(customSounds));
+            } catch (e) {
+                console.warn('Custom sounds too large to store');
+            }
+        }
     }
 
     saveRecentTimers() {
@@ -702,63 +800,46 @@ class ReminderApp {
 
     loadData() {
         try {
-            // Load reminders
-            const savedReminders = localStorage.getItem('oneReminder_reminders');
+            const savedSessions = localStorage.getItem('oneReminder_sessions');
             const savedId = localStorage.getItem('oneReminder_nextId');
+            const savedTimers = localStorage.getItem('oneReminder_recentTimers');
+            const savedCustomSounds = localStorage.getItem('oneReminder_customSounds');
 
-            if (savedReminders) {
-                this.reminders = JSON.parse(savedReminders);
-                this.reminders = this.reminders.filter(r => !r.triggered);
+            if (savedSessions) {
+                this.sessions = JSON.parse(savedSessions);
+                this.sessions = this.sessions.filter(s => !s.triggered);
+
+                // Restore custom sounds
+                if (savedCustomSounds) {
+                    const customSounds = JSON.parse(savedCustomSounds);
+                    this.sessions.forEach(s => {
+                        if (s.customSound === 'stored' && customSounds[s.id]) {
+                            s.customSound = customSounds[s.id].data;
+                            s.customSoundName = customSounds[s.id].name;
+                        }
+                    });
+                }
             }
 
             if (savedId) {
                 this.nextId = parseInt(savedId);
             }
 
-            // Load settings
-            const savedSettings = localStorage.getItem('oneReminder_settings');
-            if (savedSettings) {
-                this.settings = { ...this.settings, ...JSON.parse(savedSettings) };
-            }
-
-            // Load recent timers
-            const savedTimers = localStorage.getItem('oneReminder_recentTimers');
             if (savedTimers) {
                 this.recentTimers = JSON.parse(savedTimers);
             }
-
-            // Apply settings to UI
-            this.applySettingsToUI();
-            this.renderReminders();
         } catch (e) {
             console.error('Failed to load data:', e);
         }
-    }
-
-    applySettingsToUI() {
-        // Sound type
-        this.soundBtns.forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.sound === this.settings.soundType);
-        });
-
-        // Snooze settings
-        this.snoozeEnabledCheckbox.checked = this.settings.snoozeEnabled;
-        this.snoozeIntervalSelect.value = this.settings.snoozeInterval;
-        this.maxSnoozesSelect.value = this.settings.maxSnoozes;
-        this.snoozeOptions.style.display = this.settings.snoozeEnabled ? 'block' : 'none';
-
-        // Override audio
-        this.overrideAudioCheckbox.checked = this.settings.overrideAudio;
     }
 }
 
 // Initialize app
 const app = new ReminderApp();
 
-// Keep page alive and prevent sleep when alarm is active
+// Re-trigger sound when tab becomes visible
 document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && app.alarmModal.classList.contains('active')) {
-        // Re-trigger sound when page becomes visible
-        app.startAlarmSound();
+    if (document.visibilityState === 'visible' && app.alarmModal.classList.contains('active') && app.currentAlarmSession) {
+        app.startAlarmSound(app.currentAlarmSession);
     }
 });
