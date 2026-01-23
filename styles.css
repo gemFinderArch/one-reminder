@@ -608,14 +608,7 @@ input[type="time"]::-webkit-calendar-picker-indicator {
     text-align: center;
     max-width: 350px;
     width: 90%;
-    animation: shake 0.3s infinite;
     border: 3px solid #ff4444;
-}
-
-@keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-4px); }
-    75% { transform: translateX(4px); }
 }
 
 .alarm-icon {
