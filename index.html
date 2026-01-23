@@ -19,7 +19,7 @@
             <div class="type-selector">
                 <select id="eventType">
                     <option value="timer">Timer</option>
-                    <option value="alarm">Alarm</option>
+                    <option value="reminder">Reminder</option>
                 </select>
             </div>
 
@@ -46,8 +46,8 @@
                 </div>
             </div>
 
-            <!-- Alarm Options -->
-            <div id="alarmOptions" class="event-options hidden">
+            <!-- Reminder Options -->
+            <div id="reminderOptions" class="event-options hidden">
                 <div class="datetime-inputs">
                     <input type="date" id="dateInput">
                     <input type="time" id="timeInput">
@@ -75,8 +75,8 @@
 
                 <div class="sound-controls">
                     <label>Volume</label>
-                    <input type="range" id="volumeSlider" min="0" max="100" value="100">
-                    <span id="volumeDisplay">100%</span>
+                    <input type="range" id="volumeSlider" min="0" max="100" value="50">
+                    <span id="volumeDisplay">50%</span>
                     <button id="testSoundBtn" class="test-btn">Test</button>
                 </div>
             </div>
@@ -88,7 +88,13 @@
         <!-- Active Sessions -->
         <div class="sessions-section">
             <h2>Active Sessions <span id="sessionCount">(0)</span></h2>
-            <div id="sessionsList"></div>
+            <div id="sessionsList" class="scrollable-list"></div>
+        </div>
+
+        <!-- History Section -->
+        <div class="history-section">
+            <h2>History <span id="historyCount">(0)</span></h2>
+            <div id="historyList" class="scrollable-list"></div>
         </div>
 
         <button id="enableNotifications" class="notification-btn">Enable Notifications</button>
