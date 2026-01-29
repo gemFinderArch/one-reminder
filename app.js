@@ -95,13 +95,17 @@ class ReminderApp {
 
     setDefaultDateTime() {
         const now = new Date();
-        now.setMinutes(now.getMinutes() + 5);
         const date = now.toISOString().split('T')[0];
         const time = now.toTimeString().slice(0, 5);
 
         this.dateInput.value = date;
-        this.dateInput.min = new Date().toISOString().split('T')[0];
+        this.dateInput.min = date;
         this.timeInput.value = time;
+
+        // Empty timer fields
+        this.hoursInput.value = '';
+        this.minutesInput.value = '';
+        this.secondsInput.value = '';
     }
 
     async handleFileUpload(e) {
@@ -362,9 +366,6 @@ class ReminderApp {
             const remaining = session.targetTime - Date.now();
             const countdownClass = remaining <= 60000 ? 'critical' : remaining <= 300000 ? 'warning' : '';
             const typeClass = session.type;
-            const repeatBtn = session.originalDuration
-                ? `<button class="repeat-btn" onclick="app.repeatSession(${session.id})" title="Repeat">↻</button>`
-                : '';
 
             return `
                 <div class="session-card ${typeClass}" data-id="${session.id}">
@@ -380,7 +381,6 @@ class ReminderApp {
                         <div class="session-countdown ${countdownClass}">
                             ${this.formatTimeRemaining(remaining)}
                         </div>
-                        ${repeatBtn}
                         <button class="delete-btn" onclick="app.deleteSession(${session.id})">×</button>
                     </div>
                 </div>
@@ -404,7 +404,7 @@ class ReminderApp {
                     <div class="history-info">
                         <div class="history-name">${this.escapeHtml(item.name)}</div>
                         <div class="history-meta">
-                            Set for ${this.formatDateTime(item.setTime)} · ${this.formatTimeAgo(item.completedAt)}
+                            ${this.formatDateTime(item.setTime)} · ${this.formatTimeAgo(item.completedAt)}
                         </div>
                     </div>
                 </div>
