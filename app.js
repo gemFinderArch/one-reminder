@@ -198,10 +198,10 @@ class ReminderApp {
 
         // Reset form
         this.eventName.value = '';
-        this.soundType.value = 'strong';
+        this.soundType.value = 'school';
         this.customSoundUpload.classList.add('hidden');
-        this.volumeSlider.value = 50;
-        this.volumeDisplay.textContent = '50%';
+        this.volumeSlider.value = 25;
+        this.volumeDisplay.textContent = '25%';
         this.customAudioData = null;
         this.customAudioBuffer = null;
         this.fileName.textContent = 'No file selected';
