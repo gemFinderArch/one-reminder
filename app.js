@@ -474,14 +474,88 @@ class ReminderApp {
     }
 
     showAlarmModal(session) {
-        this.alarmTask.textContent = session.name;
-        this.alarmModal.classList.add('active');
+        this.alarmActive = true;
         document.title = '⏰ ALARM! - ' + session.name;
+
+        const popupWidth = 420;
+        const popupHeight = 340;
+        const left = (screen.width - popupWidth) / 2;
+        const top = (screen.height - popupHeight) / 2;
+
+        const popupHtml = `<!DOCTYPE html>
+<html><head><title>⏰ ALARM!</title><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#1a1a2e;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+display:flex;justify-content:center;align-items:center;height:100vh;overflow:hidden}
+.wrap{text-align:center;padding:24px;width:100%}
+.icon{font-size:4rem;animation:bounce .4s infinite alternate}
+@keyframes bounce{from{transform:scale(1)}to{transform:scale(1.15)}}
+h2{font-size:1.8rem;color:#ff4444;margin:8px 0}
+.name{font-size:1.1rem;margin-bottom:20px;word-break:break-word;color:#ccc}
+.controls{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap}
+.dismiss{padding:12px 30px;border:none;border-radius:8px;background:#ff4444;color:#fff;
+font-size:1rem;font-weight:600;cursor:pointer;transition:all .2s}
+.dismiss:hover{background:#ff6666;transform:scale(1.05)}
+.snooze-wrap{display:flex;align-items:center;gap:6px}
+.snooze-wrap input{width:55px;padding:10px 6px;border:2px solid #00d9ff;border-radius:6px;
+background:rgba(0,217,255,0.1);color:#fff;font-size:1rem;text-align:center}
+.snooze-wrap input:focus{outline:none;background:rgba(0,217,255,0.2)}
+.snooze{padding:12px 20px;border:2px solid #00d9ff;border-radius:8px;background:transparent;
+color:#00d9ff;font-size:1rem;font-weight:600;cursor:pointer;transition:all .2s}
+.snooze:hover{background:rgba(0,217,255,0.2)}
+</style></head><body>
+<div class="wrap">
+<div class="icon">⏰</div>
+<h2>Time's Up!</h2>
+<div class="name">${this.escapeHtml(session.name)}</div>
+<div class="controls">
+<button class="dismiss" onclick="dismiss()">Dismiss</button>
+<div class="snooze-wrap">
+<input type="number" id="mins" min="1" max="999" value="5">
+<button class="snooze" onclick="snooze()">Snooze</button>
+</div></div></div>
+<script>
+function dismiss(){
+  if(window.opener&&window.opener.app){window.opener.app.dismissAlarm();}
+  window.close();
+}
+function snooze(){
+  var m=parseInt(document.getElementById('mins').value)||5;
+  if(window.opener&&window.opener.app){
+    window.opener.app.snoozeMinutes.value=m;
+    window.opener.app.snoozeAlarm();
+  }
+  window.close();
+}
+window.addEventListener('beforeunload',function(){
+  if(window.opener&&window.opener.app&&window.opener.app.currentAlarmSession){
+    window.opener.app.dismissAlarm();
+  }
+});
+</script></body></html>`;
+
+        this.alarmPopup = window.open('', 'alarm_popup',
+            `width=${popupWidth},height=${popupHeight},left=${left},top=${top},resizable=no,scrollbars=no,toolbar=no,menubar=no,location=no,status=no`);
+
+        if (this.alarmPopup && !this.alarmPopup.closed) {
+            this.alarmPopup.document.write(popupHtml);
+            this.alarmPopup.document.close();
+            this.alarmPopup.focus();
+        } else {
+            // Fallback to in-page modal if popup blocked
+            this.alarmTask.textContent = session.name;
+            this.alarmModal.classList.add('active');
+        }
     }
 
     hideAlarmModal() {
+        this.alarmActive = false;
         this.alarmModal.classList.remove('active');
-        document.title = 'One Reminder';
+        if (this.alarmPopup && !this.alarmPopup.closed) {
+            this.alarmPopup.close();
+        }
+        this.alarmPopup = null;
+        document.title = 'ONE reminder';
     }
 
     async startAlarmSound(session) {
@@ -514,7 +588,7 @@ class ReminderApp {
     }
 
     playAlarmLoop(session) {
-        if (!this.alarmModal.classList.contains('active')) return;
+        if (!this.alarmActive) return;
 
         const volume = session.volume || 0.5;
 
@@ -526,7 +600,7 @@ class ReminderApp {
     }
 
     playCustomSoundLoop(volume) {
-        if (!this.customAudioBuffer || !this.alarmModal.classList.contains('active')) return;
+        if (!this.customAudioBuffer || !this.alarmActive) return;
 
         const source = this.audioContext.createBufferSource();
         const gainNode = this.audioContext.createGain();
@@ -543,10 +617,10 @@ class ReminderApp {
     }
 
     playBuiltInSoundLoop(soundType, volume) {
-        if (!this.alarmModal.classList.contains('active')) return;
+        if (!this.alarmActive) return;
 
         const playOnce = () => {
-            if (!this.alarmModal.classList.contains('active')) return;
+            if (!this.alarmActive) return;
 
             switch (soundType) {
                 case 'light':
@@ -898,7 +972,7 @@ class ReminderApp {
 const app = new ReminderApp();
 
 document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && app.alarmModal.classList.contains('active') && app.currentAlarmSession) {
+    if (document.visibilityState === 'visible' && app.alarmActive && app.currentAlarmSession) {
         app.startAlarmSound(app.currentAlarmSession);
     }
 });
