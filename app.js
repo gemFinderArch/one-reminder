@@ -323,11 +323,23 @@ class ReminderApp {
         if (ms <= 0) return '00:00:00';
 
         const totalSeconds = Math.floor(ms / 1000);
-        const hours = Math.floor(totalSeconds / 3600);
-        const minutes = Math.floor((totalSeconds % 3600) / 60);
         const seconds = totalSeconds % 60;
+        const totalMinutes = Math.floor(totalSeconds / 60);
+        const minutes = totalMinutes % 60;
+        const totalHours = Math.floor(totalMinutes / 60);
+        const hours = totalHours % 24;
+        const totalDays = Math.floor(totalHours / 24);
+        const days = totalDays % 7;
+        const weeks = Math.floor(totalDays / 7);
 
-        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        const time = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+        if (weeks > 0) {
+            return `${weeks}w ${days}d ${time}`;
+        } else if (totalDays > 0) {
+            return `${totalDays}d ${time}`;
+        }
+        return time;
     }
 
     formatDateTime(timestamp) {
