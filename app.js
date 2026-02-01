@@ -393,6 +393,7 @@ class ReminderApp {
                         <div class="session-countdown ${countdownClass}">
                             ${this.formatTimeRemaining(remaining)}
                         </div>
+                        <button class="popout-btn" onclick="app.popoutSession(${session.id})" title="Pop out">⧉</button>
                         <button class="delete-btn" onclick="app.deleteSession(${session.id})">×</button>
                     </div>
                 </div>
@@ -434,6 +435,7 @@ class ReminderApp {
         setInterval(() => {
             this.checkSessions();
             this.renderSessions();
+            this.updateSessionPopups();
         }, 1000);
     }
 
@@ -470,6 +472,92 @@ class ReminderApp {
             try {
                 navigator.mediaSession.playbackState = 'playing';
             } catch (e) {}
+        }
+    }
+
+    getPopupBaseStyles() {
+        return `*{margin:0;padding:0;box-sizing:border-box}
+body{background:#1a1a2e;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:12px;overflow-x:hidden}
+.card{background:rgba(255,255,255,0.08);padding:12px;border-radius:10px;display:flex;justify-content:space-between;align-items:center;border-left:4px solid #00d9ff;margin-bottom:8px}
+.card.timer{border-left-color:#00ff88}
+.card.reminder{border-left-color:#ff9500}
+.name{font-weight:600;font-size:.95rem;margin-bottom:2px}
+.meta{font-size:.75rem;color:#888}
+.type{padding:2px 8px;border-radius:4px;font-size:.65rem;font-weight:700;text-transform:uppercase}
+.type.timer{background:rgba(0,255,136,0.15);color:#00ff88}
+.type.reminder{background:rgba(255,149,0,0.15);color:#ff9500}
+.countdown{font-size:1.3rem;font-weight:700;color:#00d9ff;font-family:'Courier New',monospace;white-space:nowrap}
+.countdown.warning{color:#ffaa00}
+.countdown.critical{color:#ff4444;animation:blink .5s infinite}
+@keyframes blink{50%{opacity:.5}}
+.empty{text-align:center;color:#555;padding:20px;font-style:italic}
+h2{font-size:1rem;color:#aaa;margin-bottom:10px;display:flex;align-items:center;gap:6px}`;
+    }
+
+    buildSessionCardHtml(session) {
+        const remaining = session.targetTime - Date.now();
+        const countdownClass = remaining <= 60000 ? 'critical' : remaining <= 300000 ? 'warning' : '';
+        return `<div class="card ${session.type}">
+<div><div class="name">${this.escapeHtml(session.name)}</div>
+<div class="meta"><span class="type ${session.type}">${session.type.toUpperCase()}</span></div></div>
+<div class="countdown ${countdownClass}">${this.formatTimeRemaining(remaining)}</div></div>`;
+    }
+
+    popoutSession(sessionId) {
+        const session = this.sessions.find(s => s.id === sessionId);
+        if (!session) return;
+
+        const popup = window.open('', `session_${sessionId}`,
+            'width=380,height=120,resizable=yes,scrollbars=no,toolbar=no,menubar=no,location=no,status=no');
+        if (!popup || popup.closed) return;
+
+        popup.document.write(`<!DOCTYPE html><html><head><title>${this.escapeHtml(session.name)}</title>
+<style>${this.getPopupBaseStyles()}body{display:flex;align-items:center;height:100vh;padding:12px}</style></head>
+<body><div style="width:100%">${this.buildSessionCardHtml(session)}</div></body></html>`);
+        popup.document.close();
+
+        if (!this.sessionPopups) this.sessionPopups = new Map();
+        this.sessionPopups.set(sessionId, popup);
+    }
+
+    popoutAllSessions() {
+        const popup = window.open('', 'all_sessions',
+            'width=420,height=350,resizable=yes,scrollbars=yes,toolbar=no,menubar=no,location=no,status=no');
+        if (!popup || popup.closed) return;
+
+        const html = this.sessions.length === 0
+            ? '<div class="empty">No active sessions</div>'
+            : [...this.sessions].sort((a, b) => a.targetTime - b.targetTime)
+                .map(s => this.buildSessionCardHtml(s)).join('');
+
+        popup.document.write(`<!DOCTYPE html><html><head><title>Active Sessions</title>
+<style>${this.getPopupBaseStyles()}</style></head>
+<body><h2>Active Sessions (${this.sessions.length})</h2>${html}</body></html>`);
+        popup.document.close();
+
+        this.allSessionsPopup = popup;
+    }
+
+    updateSessionPopups() {
+        // Update individual session popups
+        if (this.sessionPopups) {
+            for (const [id, popup] of this.sessionPopups) {
+                if (popup.closed) { this.sessionPopups.delete(id); continue; }
+                const session = this.sessions.find(s => s.id === id);
+                if (!session) { popup.close(); this.sessionPopups.delete(id); continue; }
+                const container = popup.document.body.querySelector('div');
+                if (container) container.innerHTML = this.buildSessionCardHtml(session);
+            }
+        }
+
+        // Update all-sessions popup
+        if (this.allSessionsPopup && !this.allSessionsPopup.closed) {
+            const sorted = [...this.sessions].sort((a, b) => a.targetTime - b.targetTime);
+            const html = this.sessions.length === 0
+                ? '<div class="empty">No active sessions</div>'
+                : sorted.map(s => this.buildSessionCardHtml(s)).join('');
+            this.allSessionsPopup.document.body.innerHTML =
+                `<h2>Active Sessions (${this.sessions.length})</h2>${html}`;
         }
     }
 

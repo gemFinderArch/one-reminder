@@ -526,6 +526,31 @@ input[type="time"]::-webkit-calendar-picker-indicator {
     color: #1a1a2e;
 }
 
+.popout-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+    background: rgba(0, 217, 255, 0.15);
+    color: #00d9ff;
+}
+
+.popout-btn:hover {
+    background: #00d9ff;
+    color: #1a1a2e;
+}
+
+.header-popout {
+    width: 24px;
+    height: 24px;
+    font-size: 0.8rem;
+    vertical-align: middle;
+    margin-left: 4px;
+}
+
 .delete-btn {
     background: rgba(255, 68, 68, 0.2);
     color: #ff4444;
