@@ -12,6 +12,7 @@ class ReminderApp {
         this.alarmTimeout = null;
         this.customAudioBuffer = null;
         this.customAudioData = null;
+        this.currentEventType = 'timer';
 
         this.recentTimers = [];
         this.customSounds = {};
@@ -33,9 +34,9 @@ class ReminderApp {
 
     bindElements() {
         this.eventName = document.getElementById('eventName');
-        this.eventType = document.getElementById('eventType');
         this.timerOptions = document.getElementById('timerOptions');
         this.reminderOptions = document.getElementById('reminderOptions');
+        this.pomodoroOptions = document.getElementById('pomodoroOptions');
         this.hoursInput = document.getElementById('hoursInput');
         this.minutesInput = document.getElementById('minutesInput');
         this.secondsInput = document.getElementById('secondsInput');
@@ -64,7 +65,6 @@ class ReminderApp {
     }
 
     bindEvents() {
-        this.eventType.addEventListener('change', () => this.toggleEventType());
         this.addEventBtn.addEventListener('click', () => this.addEvent());
         this.notificationBtn.addEventListener('click', () => this.requestNotificationPermission());
         this.testSoundBtn.addEventListener('click', () => this.testSound());
@@ -86,11 +86,19 @@ class ReminderApp {
         });
     }
 
-    toggleEventType() {
-        const isTimer = this.eventType.value === 'timer';
-        this.timerOptions.classList.toggle('hidden', !isTimer);
-        this.reminderOptions.classList.toggle('hidden', isTimer);
-        this.addEventBtn.textContent = isTimer ? 'Start Timer' : 'Set Reminder';
+    setEventType(type) {
+        this.currentEventType = type;
+
+        document.querySelectorAll('.type-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.type === type);
+        });
+
+        this.timerOptions.classList.toggle('hidden', type !== 'timer');
+        this.reminderOptions.classList.toggle('hidden', type !== 'reminder');
+        this.pomodoroOptions.classList.toggle('hidden', type !== 'pomodoro');
+
+        const labels = { timer: 'Start Timer', reminder: 'Set Reminder', pomodoro: 'Start Pomodoro' };
+        this.addEventBtn.textContent = labels[type];
     }
 
     setDefaultDateTime() {
@@ -143,9 +151,17 @@ class ReminderApp {
     }
 
     addEvent() {
-        const name = this.eventName.value.trim() || (this.eventType.value === 'timer' ? 'Timer' : 'Reminder');
-        const type = this.eventType.value;
+        const type = this.currentEventType;
+        const defaultNames = { timer: 'Timer', reminder: 'Reminder', pomodoro: 'Pomodoro' };
+        const name = this.eventName.value.trim() || defaultNames[type];
         const soundSettings = this.getCurrentSoundSettings();
+
+        if (type === 'pomodoro') {
+            this.startPomodoro(name, soundSettings);
+            this.eventName.value = '';
+            this.resetSoundForm();
+            return;
+        }
 
         let targetTime;
         let originalDuration = null;
@@ -198,6 +214,10 @@ class ReminderApp {
 
         // Reset form
         this.eventName.value = '';
+        this.resetSoundForm();
+    }
+
+    resetSoundForm() {
         this.soundType.value = 'school';
         this.customSoundUpload.classList.add('hidden');
         this.volumeSlider.value = 25;
@@ -206,6 +226,135 @@ class ReminderApp {
         this.customAudioBuffer = null;
         this.fileName.textContent = 'No file selected';
         this.soundFile.value = '';
+    }
+
+    startPomodoro(name, soundSettings) {
+        const workMin = parseInt(document.getElementById('pomoWork').value) || 25;
+        const breakMin = parseInt(document.getElementById('pomoBreak').value) || 5;
+        const sessionsPerCycle = parseInt(document.getElementById('pomoSessions').value) || 4;
+        const longBreakMin = parseInt(document.getElementById('pomoLongBreak').value) || 15;
+        const totalCycles = parseInt(document.getElementById('pomoCycles').value) || 1;
+
+        const session = {
+            id: this.nextId++,
+            name,
+            type: 'pomodoro',
+            phase: 'work',
+            workDuration: workMin * 60 * 1000,
+            breakDuration: breakMin * 60 * 1000,
+            longBreakDuration: longBreakMin * 60 * 1000,
+            sessionsPerCycle,
+            totalCycles,
+            currentSession: 1,
+            currentCycle: 1,
+            completedSessions: 0,
+            targetTime: Date.now() + workMin * 60 * 1000,
+            originalDuration: workMin * 60 * 1000,
+            ...soundSettings,
+            triggered: false,
+            snoozeCount: 0,
+            createdAt: Date.now()
+        };
+
+        this.sessions.push(session);
+        this.saveSessions();
+        this.renderSessions();
+    }
+
+    advancePomodoroPhase(session) {
+        if (session.phase === 'work') {
+            session.completedSessions++;
+            const isLastSessionInCycle = session.currentSession >= session.sessionsPerCycle;
+
+            if (isLastSessionInCycle) {
+                session.phase = 'longBreak';
+                session.targetTime = Date.now() + session.longBreakDuration;
+            } else {
+                session.phase = 'break';
+                session.targetTime = Date.now() + session.breakDuration;
+            }
+        } else if (session.phase === 'break') {
+            session.currentSession++;
+            session.phase = 'work';
+            session.targetTime = Date.now() + session.workDuration;
+        } else if (session.phase === 'longBreak') {
+            session.currentCycle++;
+
+            if (session.currentCycle > session.totalCycles) {
+                this.addToHistory(session);
+                this.deleteSession(session.id);
+                return;
+            }
+
+            session.currentSession = 1;
+            session.phase = 'work';
+            session.targetTime = Date.now() + session.workDuration;
+        }
+
+        session.triggered = false;
+        this.playBriefAlarm(session);
+        this.sendNotification(`${session.name} - ${session.phase === 'work' ? 'WORK' : session.phase === 'break' ? 'BREAK' : 'LONG BREAK'}`);
+        this.saveSessions();
+        this.renderSessions();
+    }
+
+    async playBriefAlarm(session) {
+        if (!this.audioContext) {
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (this.audioContext.state === 'suspended') {
+            await this.audioContext.resume();
+        }
+
+        const volume = session.volume || 0.5;
+
+        if (session.soundType === 'custom' && session.customSound) {
+            await this.loadCustomSound(session.customSound);
+            if (this.customAudioBuffer) {
+                const source = this.audioContext.createBufferSource();
+                const gainNode = this.audioContext.createGain();
+                source.buffer = this.customAudioBuffer;
+                source.connect(gainNode);
+                gainNode.connect(this.audioContext.destination);
+                gainNode.gain.value = volume;
+                source.start(0);
+                setTimeout(() => { try { source.stop(); } catch(e) {} }, 3000);
+            }
+        } else {
+            switch (session.soundType) {
+                case 'light': this.playLightAlarm(volume); break;
+                case 'school': this.playSchoolBell(volume); break;
+                case 'siren': this.playSiren(volume); break;
+                case 'strong': default: this.playStrongAlarm(volume); break;
+            }
+        }
+    }
+
+    renderPomodoroCard(session, remaining, countdownClass) {
+        const phaseLabels = { work: 'WORK', break: 'BREAK', longBreak: 'LONG BREAK' };
+        const phaseLabel = phaseLabels[session.phase];
+        const untilLongBreak = session.sessionsPerCycle - session.currentSession;
+
+        return `
+            <div class="session-card pomodoro phase-${session.phase}" data-id="${session.id}">
+                <div class="session-info">
+                    <div class="session-name">${this.escapeHtml(session.name)}</div>
+                    <div class="session-meta">
+                        <span class="pomo-phase ${session.phase}">${phaseLabel}</span>
+                    </div>
+                    <div class="pomo-stats">
+                        Session ${session.currentSession}/${session.sessionsPerCycle} · Cycle ${session.currentCycle}/${session.totalCycles} · ${session.completedSessions} done · ${untilLongBreak} until long break
+                    </div>
+                </div>
+                <div class="session-actions">
+                    <div class="session-countdown ${countdownClass}">
+                        ${this.formatTimeRemaining(remaining)}
+                    </div>
+                    <button class="popout-btn" onclick="app.popoutSession(${session.id})" title="Pop out">⧉</button>
+                    <button class="delete-btn" onclick="app.deleteSession(${session.id})">×</button>
+                </div>
+            </div>
+        `;
     }
 
     addRecentTimer(hours, minutes, seconds) {
@@ -296,8 +445,8 @@ class ReminderApp {
     }
 
     addToHistory(session) {
-        // Only add reminders to history, not timers
-        if (session.type !== 'reminder') return;
+        // Only add reminders and pomodoros to history, not timers
+        if (session.type !== 'reminder' && session.type !== 'pomodoro') return;
 
         const historyItem = {
             id: session.id,
@@ -306,6 +455,12 @@ class ReminderApp {
             setTime: session.targetTime,
             completedAt: Date.now()
         };
+
+        if (session.type === 'pomodoro') {
+            historyItem.completedSessions = session.completedSessions;
+            historyItem.totalCycles = session.totalCycles;
+            historyItem.sessionsPerCycle = session.sessionsPerCycle;
+        }
 
         this.history.unshift(historyItem);
         this.history = this.history.slice(0, 50); // Keep last 50
@@ -377,6 +532,11 @@ class ReminderApp {
         this.sessionsList.innerHTML = sorted.map(session => {
             const remaining = session.targetTime - Date.now();
             const countdownClass = remaining <= 60000 ? 'critical' : remaining <= 300000 ? 'warning' : '';
+
+            if (session.type === 'pomodoro') {
+                return this.renderPomodoroCard(session, remaining, countdownClass);
+            }
+
             const typeClass = session.type;
 
             return `
@@ -412,12 +572,15 @@ class ReminderApp {
         const clearBtn = `<button class="clear-history-btn" onclick="app.clearHistory()">Clear All</button>`;
 
         this.historyList.innerHTML = this.history.map(item => {
+            const pomoStats = item.type === 'pomodoro'
+                ? ` · ${item.completedSessions} sessions · ${item.totalCycles} cycle${item.totalCycles > 1 ? 's' : ''}`
+                : '';
             return `
-                <div class="history-card reminder">
+                <div class="history-card ${item.type}">
                     <div class="history-info">
                         <div class="history-name">${this.escapeHtml(item.name)}</div>
                         <div class="history-meta">
-                            ${this.formatDateTime(item.setTime)} · ${this.formatTimeAgo(item.completedAt)}
+                            ${this.formatDateTime(item.setTime)} · ${this.formatTimeAgo(item.completedAt)}${pomoStats}
                         </div>
                     </div>
                 </div>
@@ -445,7 +608,11 @@ class ReminderApp {
         this.sessions.forEach(session => {
             if (!session.triggered && now >= session.targetTime) {
                 session.triggered = true;
-                this.triggerAlarm(session);
+                if (session.type === 'pomodoro') {
+                    this.advancePomodoroPhase(session);
+                } else {
+                    this.triggerAlarm(session);
+                }
             }
         });
     }
@@ -485,11 +652,21 @@ body{background:#1a1a2e;color:#fff;font-family:-apple-system,BlinkMacSystemFont,
 .card{background:rgba(255,255,255,0.08);padding:12px;border-radius:10px;display:flex;justify-content:space-between;align-items:center;border-left:4px solid #00d9ff;margin-bottom:8px}
 .card.timer{border-left-color:#00ff88}
 .card.reminder{border-left-color:#ff9500}
+.card.pomodoro{border-left-color:#ff4444}
+.card.phase-work{border-left-color:#ff4444}
+.card.phase-break{border-left-color:#00ff88}
+.card.phase-longBreak{border-left-color:#4488ff}
 .name{font-weight:600;font-size:.95rem;margin-bottom:2px}
 .meta{font-size:.75rem;color:#888}
 .type{padding:2px 8px;border-radius:4px;font-size:.65rem;font-weight:700;text-transform:uppercase}
 .type.timer{background:rgba(0,255,136,0.15);color:#00ff88}
 .type.reminder{background:rgba(255,149,0,0.15);color:#ff9500}
+.type.pomodoro{background:rgba(255,68,68,0.15);color:#ff4444}
+.pomo-phase{font-size:.75rem;font-weight:700;text-transform:uppercase}
+.pomo-phase.work{color:#ff4444}
+.pomo-phase.break{color:#00ff88}
+.pomo-phase.longBreak{color:#4488ff}
+.pomo-stats{font-size:.7rem;color:#666;margin-top:2px}
 .countdown{font-size:1.3rem;font-weight:700;color:#00d9ff;font-family:'Courier New',monospace;white-space:nowrap}
 .countdown.warning{color:#ffaa00}
 .countdown.critical{color:#ff4444;animation:blink .5s infinite}
@@ -501,6 +678,18 @@ h2{font-size:1rem;color:#aaa;margin-bottom:10px;display:flex;align-items:center;
     buildSessionCardHtml(session) {
         const remaining = session.targetTime - Date.now();
         const countdownClass = remaining <= 60000 ? 'critical' : remaining <= 300000 ? 'warning' : '';
+
+        if (session.type === 'pomodoro') {
+            const phaseLabels = { work: 'WORK', break: 'BREAK', longBreak: 'LONG BREAK' };
+            const phaseLabel = phaseLabels[session.phase];
+            const untilLongBreak = session.sessionsPerCycle - session.currentSession;
+            return `<div class="card pomodoro phase-${session.phase}">
+<div><div class="name">${this.escapeHtml(session.name)}</div>
+<div class="meta"><span class="pomo-phase ${session.phase}">${phaseLabel}</span></div>
+<div class="pomo-stats">Session ${session.currentSession}/${session.sessionsPerCycle} · Cycle ${session.currentCycle}/${session.totalCycles} · ${session.completedSessions} done · ${untilLongBreak} until long break</div></div>
+<div class="countdown ${countdownClass}">${this.formatTimeRemaining(remaining)}</div></div>`;
+        }
+
         return `<div class="card ${session.type}">
 <div><div class="name">${this.escapeHtml(session.name)}</div>
 <div class="meta"><span class="type ${session.type}">${session.type.toUpperCase()}</span></div></div>
@@ -515,7 +704,7 @@ h2{font-size:1rem;color:#aaa;margin-bottom:10px;display:flex;align-items:center;
             'width=380,height=120,resizable=yes,scrollbars=no,toolbar=no,menubar=no,location=no,status=no');
         if (!popup || popup.closed) return;
 
-        popup.document.write(`<!DOCTYPE html><html><head><title>ONE reminder - ${this.escapeHtml(session.name)}</title>
+        popup.document.write(`<!DOCTYPE html><html><head><title>${this.escapeHtml(session.name)}</title>
 ${this.getPopupFavicon()}
 <style>${this.getPopupBaseStyles()}body{display:flex;align-items:center;height:100vh;padding:12px}</style></head>
 <body><div style="width:100%">${this.buildSessionCardHtml(session)}</div></body></html>`);
@@ -535,7 +724,7 @@ ${this.getPopupFavicon()}
             : [...this.sessions].sort((a, b) => a.targetTime - b.targetTime)
                 .map(s => this.buildSessionCardHtml(s)).join('');
 
-        popup.document.write(`<!DOCTYPE html><html><head><title>ONE reminder - Active Sessions</title>
+        popup.document.write(`<!DOCTYPE html><html><head><title>Active Sessions</title>
 ${this.getPopupFavicon()}
 <style>${this.getPopupBaseStyles()}</style></head>
 <body><h2>Active Sessions (${this.sessions.length})</h2>${html}</body></html>`);
@@ -577,7 +766,7 @@ ${this.getPopupFavicon()}
         const top = (screen.height - popupHeight) / 2;
 
         const popupHtml = `<!DOCTYPE html>
-<html><head><title>ONE reminder - ALARM!</title>
+<html><head><title>ALARM!</title>
 ${this.getPopupFavicon()}
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
