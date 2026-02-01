@@ -516,22 +516,14 @@ color:#00d9ff;font-size:1rem;font-weight:600;cursor:pointer;transition:all .2s}
 </div></div></div>
 <script>
 function dismiss(){
-  if(window.opener&&window.opener.app){window.opener.app.dismissAlarm();}
+  if(window.opener) window.opener.postMessage({action:'alarm-dismiss'},'*');
   window.close();
 }
 function snooze(){
   var m=parseInt(document.getElementById('mins').value)||5;
-  if(window.opener&&window.opener.app){
-    window.opener.app.snoozeMinutes.value=m;
-    window.opener.app.snoozeAlarm();
-  }
+  if(window.opener) window.opener.postMessage({action:'alarm-snooze',minutes:m},'*');
   window.close();
 }
-window.addEventListener('beforeunload',function(){
-  if(window.opener&&window.opener.app&&window.opener.app.currentAlarmSession){
-    window.opener.app.dismissAlarm();
-  }
-});
 </script></body></html>`;
 
         this.alarmPopup = window.open('', 'alarm_popup',
@@ -974,5 +966,15 @@ const app = new ReminderApp();
 document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible' && app.alarmActive && app.currentAlarmSession) {
         app.startAlarmSound(app.currentAlarmSession);
+    }
+});
+
+window.addEventListener('message', (e) => {
+    if (!e.data || !e.data.action) return;
+    if (e.data.action === 'alarm-dismiss') {
+        app.dismissAlarm();
+    } else if (e.data.action === 'alarm-snooze') {
+        app.snoozeMinutes.value = e.data.minutes || 5;
+        app.snoozeAlarm();
     }
 });
