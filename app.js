@@ -475,6 +475,10 @@ class ReminderApp {
         }
     }
 
+    getPopupFavicon() {
+        return '<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⏰</text></svg>">';
+    }
+
     getPopupBaseStyles() {
         return `*{margin:0;padding:0;box-sizing:border-box}
 body{background:#1a1a2e;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:12px;overflow-x:hidden}
@@ -511,7 +515,8 @@ h2{font-size:1rem;color:#aaa;margin-bottom:10px;display:flex;align-items:center;
             'width=380,height=120,resizable=yes,scrollbars=no,toolbar=no,menubar=no,location=no,status=no');
         if (!popup || popup.closed) return;
 
-        popup.document.write(`<!DOCTYPE html><html><head><title>${this.escapeHtml(session.name)}</title>
+        popup.document.write(`<!DOCTYPE html><html><head><title>ONE reminder - ${this.escapeHtml(session.name)}</title>
+${this.getPopupFavicon()}
 <style>${this.getPopupBaseStyles()}body{display:flex;align-items:center;height:100vh;padding:12px}</style></head>
 <body><div style="width:100%">${this.buildSessionCardHtml(session)}</div></body></html>`);
         popup.document.close();
@@ -530,7 +535,8 @@ h2{font-size:1rem;color:#aaa;margin-bottom:10px;display:flex;align-items:center;
             : [...this.sessions].sort((a, b) => a.targetTime - b.targetTime)
                 .map(s => this.buildSessionCardHtml(s)).join('');
 
-        popup.document.write(`<!DOCTYPE html><html><head><title>Active Sessions</title>
+        popup.document.write(`<!DOCTYPE html><html><head><title>ONE reminder - Active Sessions</title>
+${this.getPopupFavicon()}
 <style>${this.getPopupBaseStyles()}</style></head>
 <body><h2>Active Sessions (${this.sessions.length})</h2>${html}</body></html>`);
         popup.document.close();
@@ -571,7 +577,9 @@ h2{font-size:1rem;color:#aaa;margin-bottom:10px;display:flex;align-items:center;
         const top = (screen.height - popupHeight) / 2;
 
         const popupHtml = `<!DOCTYPE html>
-<html><head><title>⏰ ALARM!</title><style>
+<html><head><title>ONE reminder - ALARM!</title>
+${this.getPopupFavicon()}
+<style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#1a1a2e;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 display:flex;justify-content:center;align-items:center;height:100vh;overflow:hidden}
