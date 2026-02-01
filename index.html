@@ -17,10 +17,9 @@
 
             <!-- Type Selector -->
             <div class="type-selector">
-                <select id="eventType">
-                    <option value="timer">Timer</option>
-                    <option value="reminder">Reminder</option>
-                </select>
+                <button class="type-btn active" data-type="timer" onclick="app.setEventType('timer')">Timer</button>
+                <button class="type-btn" data-type="reminder" onclick="app.setEventType('reminder')">Reminder</button>
+                <button class="type-btn" data-type="pomodoro" onclick="app.setEventType('pomodoro')">Pomodoro</button>
             </div>
 
             <!-- Timer Options -->
@@ -51,6 +50,32 @@
                 <div class="datetime-inputs">
                     <input type="date" id="dateInput">
                     <input type="time" id="timeInput">
+                </div>
+            </div>
+
+            <!-- Pomodoro Options -->
+            <div id="pomodoroOptions" class="event-options hidden">
+                <div class="pomodoro-inputs">
+                    <div class="pomo-field">
+                        <input type="number" id="pomoWork" min="1" max="120" value="25">
+                        <label>Work (min)</label>
+                    </div>
+                    <div class="pomo-field">
+                        <input type="number" id="pomoBreak" min="1" max="60" value="5">
+                        <label>Break (min)</label>
+                    </div>
+                    <div class="pomo-field">
+                        <input type="number" id="pomoSessions" min="1" max="20" value="4">
+                        <label>Sessions</label>
+                    </div>
+                    <div class="pomo-field">
+                        <input type="number" id="pomoLongBreak" min="1" max="60" value="15">
+                        <label>Long Break</label>
+                    </div>
+                    <div class="pomo-field">
+                        <input type="number" id="pomoCycles" min="1" max="20" value="1">
+                        <label>Cycles</label>
+                    </div>
                 </div>
             </div>
 

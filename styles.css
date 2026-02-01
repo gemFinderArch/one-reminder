@@ -82,33 +82,47 @@ h2 {
 
 /* Type Selector */
 .type-selector {
+    display: flex;
     margin-bottom: 12px;
-}
-
-.type-selector select {
-    width: 100%;
-    padding: 10px;
-    border: 2px solid rgba(255, 255, 255, 0.1);
     border-radius: 8px;
-    background: #1a1a2e;
-    color: #fff;
-    font-size: 1rem;
-    cursor: pointer;
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2300d9ff' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 12px center;
+    overflow: hidden;
+    border: 2px solid rgba(255, 255, 255, 0.1);
 }
 
-.type-selector select:focus {
-    outline: none;
-    border-color: #00d9ff;
-}
-
-.type-selector select option {
-    background: #1a1a2e;
-    color: #fff;
+.type-btn {
+    flex: 1;
     padding: 10px;
+    border: none;
+    background: rgba(255, 255, 255, 0.05);
+    color: #888;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.type-btn:not(:last-child) {
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.type-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ccc;
+}
+
+.type-btn.active[data-type="timer"] {
+    background: rgba(0, 255, 136, 0.2);
+    color: #00ff88;
+}
+
+.type-btn.active[data-type="reminder"] {
+    background: rgba(255, 149, 0, 0.2);
+    color: #ff9500;
+}
+
+.type-btn.active[data-type="pomodoro"] {
+    background: rgba(255, 68, 68, 0.2);
+    color: #ff4444;
 }
 
 /* Event Options */
@@ -209,6 +223,42 @@ h2 {
 input[type="date"]::-webkit-calendar-picker-indicator,
 input[type="time"]::-webkit-calendar-picker-indicator {
     filter: invert(1);
+}
+
+/* Pomodoro Inputs */
+.pomodoro-inputs {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.pomo-field {
+    text-align: center;
+}
+
+.pomo-field input {
+    width: 60px;
+    padding: 10px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+    font-size: 1.1rem;
+    text-align: center;
+}
+
+.pomo-field input:focus {
+    outline: none;
+    border-color: #ff4444;
+}
+
+.pomo-field label {
+    display: block;
+    margin-top: 4px;
+    color: #888;
+    font-size: 0.7rem;
 }
 
 /* Sound Settings */
@@ -438,6 +488,39 @@ input[type="time"]::-webkit-calendar-picker-indicator {
     border-left-color: #ff9500;
 }
 
+.session-card.pomodoro, .history-card.pomodoro {
+    border-left-color: #ff4444;
+}
+
+.session-card.pomodoro.phase-work {
+    border-left-color: #ff4444;
+}
+
+.session-card.pomodoro.phase-break {
+    border-left-color: #00ff88;
+}
+
+.session-card.pomodoro.phase-longBreak {
+    border-left-color: #4488ff;
+}
+
+.pomo-phase {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-right: 6px;
+}
+
+.pomo-phase.work { color: #ff4444; }
+.pomo-phase.break { color: #00ff88; }
+.pomo-phase.longBreak { color: #4488ff; }
+
+.pomo-stats {
+    font-size: 0.7rem;
+    color: #666;
+    margin-top: 2px;
+}
+
 .history-card {
     opacity: 0.7;
 }
@@ -477,6 +560,11 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 .session-type.reminder, .history-type.reminder {
     background: rgba(255, 149, 0, 0.2);
     color: #ff9500;
+}
+
+.session-type.pomodoro, .history-type.pomodoro {
+    background: rgba(255, 68, 68, 0.2);
+    color: #ff4444;
 }
 
 .session-actions {
