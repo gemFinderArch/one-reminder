@@ -34,6 +34,7 @@ class ReminderApp {
 
     bindElements() {
         this.eventName = document.getElementById('eventName');
+        this.eventDescription = document.getElementById('eventDescription');
         this.timerOptions = document.getElementById('timerOptions');
         this.reminderOptions = document.getElementById('reminderOptions');
         this.pomodoroOptions = document.getElementById('pomodoroOptions');
@@ -154,11 +155,13 @@ class ReminderApp {
         const type = this.currentEventType;
         const defaultNames = { timer: 'Timer', reminder: 'Reminder', pomodoro: 'Pomodoro' };
         const name = this.eventName.value.trim() || defaultNames[type];
+        const description = this.eventDescription.value.trim();
         const soundSettings = this.getCurrentSoundSettings();
 
         if (type === 'pomodoro') {
-            this.startPomodoro(name, soundSettings);
+            this.startPomodoro(name, soundSettings, description);
             this.eventName.value = '';
+            this.eventDescription.value = '';
             this.resetSoundForm();
             return;
         }
@@ -199,6 +202,7 @@ class ReminderApp {
         const session = {
             id: this.nextId++,
             name,
+            description,
             type,
             targetTime,
             originalDuration,
@@ -214,6 +218,7 @@ class ReminderApp {
 
         // Reset form
         this.eventName.value = '';
+        this.eventDescription.value = '';
         this.resetSoundForm();
     }
 
@@ -228,7 +233,7 @@ class ReminderApp {
         this.soundFile.value = '';
     }
 
-    startPomodoro(name, soundSettings) {
+    startPomodoro(name, soundSettings, description) {
         const workMin = parseInt(document.getElementById('pomoWork').value) || 25;
         const breakMin = parseInt(document.getElementById('pomoBreak').value) || 5;
         const sessionsPerCycle = parseInt(document.getElementById('pomoSessions').value) || 4;
@@ -238,6 +243,7 @@ class ReminderApp {
         const session = {
             id: this.nextId++,
             name,
+            description,
             type: 'pomodoro',
             phase: 'work',
             workDuration: workMin * 60 * 1000,
@@ -330,29 +336,31 @@ class ReminderApp {
         }
     }
 
-    renderPomodoroCard(session, remaining, countdownClass) {
+    renderPomodoroCard(session, remaining) {
         const phaseLabels = { work: 'WORK', break: 'BREAK', longBreak: 'LONG BREAK' };
         const phaseLabel = phaseLabels[session.phase];
         const untilLongBreak = session.sessionsPerCycle - session.currentSession;
+        const descriptionHtml = session.description ? `<div class="session-description">${this.escapeHtml(session.description)}</div>` : '';
 
         return `
             <div class="session-card pomodoro phase-${session.phase}" data-id="${session.id}">
+                <div class="pomo-stats">
+                    Session ${session.currentSession}/${session.sessionsPerCycle} · Cycle ${session.currentCycle}/${session.totalCycles} · ${session.completedSessions} done · ${untilLongBreak} until long break
+                </div>
                 <div class="session-info">
                     <div class="session-name">${this.escapeHtml(session.name)}</div>
                     <div class="session-meta">
                         <span class="pomo-phase ${session.phase}">${phaseLabel}</span>
                     </div>
-                    <div class="pomo-stats">
-                        Session ${session.currentSession}/${session.sessionsPerCycle} · Cycle ${session.currentCycle}/${session.totalCycles} · ${session.completedSessions} done · ${untilLongBreak} until long break
-                    </div>
                 </div>
                 <div class="session-actions">
-                    <div class="session-countdown ${countdownClass}">
+                    <div class="session-countdown">
                         ${this.formatTimeRemaining(remaining)}
                     </div>
                     <button class="popout-btn" onclick="app.popoutSession(${session.id})" title="Pop out">⧉</button>
                     <button class="delete-btn" onclick="app.deleteSession(${session.id})">×</button>
                 </div>
+                ${descriptionHtml}
             </div>
         `;
     }
@@ -392,11 +400,13 @@ class ReminderApp {
     startRecentTimer(hours, minutes, seconds) {
         const totalSeconds = hours * 3600 + minutes * 60 + seconds;
         const name = this.eventName.value.trim() || 'Timer';
+        const description = this.eventDescription.value.trim();
         const soundSettings = this.getCurrentSoundSettings();
 
         const session = {
             id: this.nextId++,
             name,
+            description,
             type: 'timer',
             targetTime: Date.now() + totalSeconds * 1000,
             originalDuration: totalSeconds * 1000,
@@ -410,6 +420,7 @@ class ReminderApp {
         this.saveSessions();
         this.renderSessions();
         this.eventName.value = '';
+        this.eventDescription.value = '';
 
         this.addRecentTimer(hours, minutes, seconds);
     }
@@ -421,6 +432,7 @@ class ReminderApp {
         const newSession = {
             id: this.nextId++,
             name: session.name,
+            description: session.description,
             type: session.type,
             targetTime: Date.now() + session.originalDuration,
             originalDuration: session.originalDuration,
@@ -531,13 +543,13 @@ class ReminderApp {
 
         this.sessionsList.innerHTML = sorted.map(session => {
             const remaining = session.targetTime - Date.now();
-            const countdownClass = remaining <= 60000 ? 'critical' : remaining <= 300000 ? 'warning' : '';
 
             if (session.type === 'pomodoro') {
-                return this.renderPomodoroCard(session, remaining, countdownClass);
+                return this.renderPomodoroCard(session, remaining);
             }
 
             const typeClass = session.type;
+            const descriptionHtml = session.description ? `<div class="session-description">${this.escapeHtml(session.description)}</div>` : '';
 
             return `
                 <div class="session-card ${typeClass}" data-id="${session.id}">
@@ -550,12 +562,13 @@ class ReminderApp {
                         </div>
                     </div>
                     <div class="session-actions">
-                        <div class="session-countdown ${countdownClass}">
+                        <div class="session-countdown">
                             ${this.formatTimeRemaining(remaining)}
                         </div>
                         <button class="popout-btn" onclick="app.popoutSession(${session.id})" title="Pop out">⧉</button>
                         <button class="delete-btn" onclick="app.deleteSession(${session.id})">×</button>
                     </div>
+                    ${descriptionHtml}
                 </div>
             `;
         }).join('');
@@ -649,7 +662,7 @@ class ReminderApp {
     getPopupBaseStyles() {
         return `*{margin:0;padding:0;box-sizing:border-box}
 body{background:#1a1a2e;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:12px;overflow-x:hidden}
-.card{background:rgba(255,255,255,0.08);padding:12px;border-radius:10px;display:flex;justify-content:space-between;align-items:center;border-left:4px solid #00d9ff;margin-bottom:8px}
+.card{background:rgba(255,255,255,0.08);padding:12px;border-radius:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;border-left:4px solid #00d9ff;margin-bottom:8px}
 .card.timer{border-left-color:#00ff88}
 .card.reminder{border-left-color:#ff9500}
 .card.pomodoro{border-left-color:#ff4444}
@@ -666,34 +679,34 @@ body{background:#1a1a2e;color:#fff;font-family:-apple-system,BlinkMacSystemFont,
 .pomo-phase.work{color:#ff4444}
 .pomo-phase.break{color:#00ff88}
 .pomo-phase.longBreak{color:#4488ff}
-.pomo-stats{font-size:.7rem;color:#666;margin-top:2px}
+.pomo-stats{font-size:.85rem;color:#666;width:100%;text-align:center;margin-bottom:6px}
 .countdown{font-size:1.3rem;font-weight:700;color:#00d9ff;font-family:'Courier New',monospace;white-space:nowrap}
-.countdown.warning{color:#ffaa00}
-.countdown.critical{color:#ff4444;animation:blink .5s infinite}
-@keyframes blink{50%{opacity:.5}}
+.session-description{width:100%;text-align:center;font-size:.85rem;color:#aaa;max-height:4em;overflow-y:auto;white-space:pre-wrap;word-break:break-word;border-top:1px solid rgba(255,255,255,0.1);padding-top:8px;margin-top:8px;line-height:1.35}
 .empty{text-align:center;color:#555;padding:20px;font-style:italic}
 h2{font-size:1rem;color:#aaa;margin-bottom:10px;display:flex;align-items:center;gap:6px}`;
     }
 
     buildSessionCardHtml(session) {
         const remaining = session.targetTime - Date.now();
-        const countdownClass = remaining <= 60000 ? 'critical' : remaining <= 300000 ? 'warning' : '';
+        const descriptionHtml = session.description ? `<div class="session-description">${this.escapeHtml(session.description)}</div>` : '';
 
         if (session.type === 'pomodoro') {
             const phaseLabels = { work: 'WORK', break: 'BREAK', longBreak: 'LONG BREAK' };
             const phaseLabel = phaseLabels[session.phase];
             const untilLongBreak = session.sessionsPerCycle - session.currentSession;
             return `<div class="card pomodoro phase-${session.phase}">
+<div class="pomo-stats">Session ${session.currentSession}/${session.sessionsPerCycle} · Cycle ${session.currentCycle}/${session.totalCycles} · ${session.completedSessions} done · ${untilLongBreak} until long break</div>
 <div><div class="name">${this.escapeHtml(session.name)}</div>
-<div class="meta"><span class="pomo-phase ${session.phase}">${phaseLabel}</span></div>
-<div class="pomo-stats">Session ${session.currentSession}/${session.sessionsPerCycle} · Cycle ${session.currentCycle}/${session.totalCycles} · ${session.completedSessions} done · ${untilLongBreak} until long break</div></div>
-<div class="countdown ${countdownClass}">${this.formatTimeRemaining(remaining)}</div></div>`;
+<div class="meta"><span class="pomo-phase ${session.phase}">${phaseLabel}</span></div></div>
+<div class="countdown">${this.formatTimeRemaining(remaining)}</div>
+${descriptionHtml}</div>`;
         }
 
         return `<div class="card ${session.type}">
 <div><div class="name">${this.escapeHtml(session.name)}</div>
 <div class="meta"><span class="type ${session.type}">${session.type.toUpperCase()}</span></div></div>
-<div class="countdown ${countdownClass}">${this.formatTimeRemaining(remaining)}</div></div>`;
+<div class="countdown">${this.formatTimeRemaining(remaining)}</div>
+${descriptionHtml}</div>`;
     }
 
     popoutSession(sessionId) {

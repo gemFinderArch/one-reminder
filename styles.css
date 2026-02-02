@@ -80,6 +80,28 @@ h2 {
     color: #666;
 }
 
+#eventDescription {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+    font-size: 1rem;
+    font-family: inherit;
+    margin-bottom: 12px;
+    resize: vertical;
+}
+
+#eventDescription:focus {
+    outline: none;
+    border-color: #00d9ff;
+}
+
+#eventDescription::placeholder {
+    color: #666;
+}
+
 /* Type Selector */
 .type-selector {
     display: flex;
@@ -271,14 +293,14 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 
 .sound-header {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
+    gap: 10px;
     margin-bottom: 10px;
 }
 
 .sound-header span {
-    font-size: 0.9rem;
-    color: #aaa;
+    font-size: 1.1rem;
 }
 
 .sound-header select {
@@ -471,6 +493,7 @@ input[type="time"]::-webkit-calendar-picker-indicator {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
     border-left: 4px solid #00d9ff;
     transition: all 0.3s;
     flex-shrink: 0;
@@ -516,9 +539,11 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 .pomo-phase.longBreak { color: #4488ff; }
 
 .pomo-stats {
-    font-size: 0.7rem;
+    font-size: 0.85rem;
     color: #666;
-    margin-top: 2px;
+    width: 100%;
+    text-align: center;
+    margin-bottom: 6px;
 }
 
 .history-card {
@@ -580,17 +605,37 @@ input[type="time"]::-webkit-calendar-picker-indicator {
     font-family: 'Courier New', monospace;
 }
 
-.session-countdown.warning {
-    color: #ffaa00;
+.session-description {
+    width: 100%;
+    text-align: center;
+    font-size: 0.85rem;
+    color: #aaa;
+    max-height: 4em;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 8px;
+    margin-top: 8px;
+    line-height: 1.35;
 }
 
-.session-countdown.critical {
-    color: #ff4444;
-    animation: blink 0.5s infinite;
+.session-description::-webkit-scrollbar {
+    width: 5px;
 }
 
-@keyframes blink {
-    50% { opacity: 0.5; }
+.session-description::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+}
+
+.session-description::-webkit-scrollbar-thumb {
+    background: rgba(0, 217, 255, 0.3);
+    border-radius: 3px;
+}
+
+.session-description::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 217, 255, 0.5);
 }
 
 .repeat-btn,
