@@ -14,6 +14,7 @@
         <div class="input-section">
             <!-- Event Name -->
             <input type="text" id="eventName" placeholder="Event name..." maxlength="100">
+            <textarea id="eventDescription" placeholder="Description (optional)..." rows="2" maxlength="500"></textarea>
 
             <!-- Type Selector -->
             <div class="type-selector">
@@ -82,7 +83,7 @@
             <!-- Sound Settings (per-reminder) -->
             <div class="sound-settings">
                 <div class="sound-header">
-                    <span>🔊 Sound</span>
+                    <span>🔊</span>
                     <select id="soundType">
                         <option value="strong">Strong</option>
                         <option value="light">Light</option>
@@ -90,6 +91,7 @@
                         <option value="siren">Siren</option>
                         <option value="custom">Custom Upload</option>
                     </select>
+                    <button id="testSoundBtn" class="test-btn">Test</button>
                 </div>
 
                 <div id="customSoundUpload" class="custom-upload hidden">
@@ -102,7 +104,6 @@
                     <label>Volume</label>
                     <input type="range" id="volumeSlider" min="0" max="100" value="25">
                     <span id="volumeDisplay">25%</span>
-                    <button id="testSoundBtn" class="test-btn">Test</button>
                 </div>
             </div>
 
