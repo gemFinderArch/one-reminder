@@ -57,6 +57,8 @@ class ReminderApp {
         this.historyCount = document.getElementById('historyCount');
         this.recentTimersList = document.getElementById('recentTimersList');
         this.notificationBtn = document.getElementById('enableNotifications');
+        this.sessionsSection = document.getElementById('sessionsSection');
+        this.historySection = document.getElementById('historySection');
 
         this.alarmModal = document.getElementById('alarmModal');
         this.alarmTask = document.getElementById('alarmTask');
@@ -100,6 +102,33 @@ class ReminderApp {
 
         const labels = { timer: 'Start Timer', reminder: 'Set Reminder', pomodoro: 'Start Pomodoro' };
         this.addEventBtn.textContent = labels[type];
+    }
+
+    toggleSection(section) {
+        const sessionsCollapsed = this.sessionsSection.classList.contains('collapsed');
+        const historyCollapsed = this.historySection.classList.contains('collapsed');
+
+        if (section === 'sessions') {
+            if (sessionsCollapsed) {
+                // Expand sessions, collapse history
+                this.sessionsSection.classList.remove('collapsed');
+                this.historySection.classList.add('collapsed');
+            } else {
+                // Collapse sessions, expand history
+                this.sessionsSection.classList.add('collapsed');
+                this.historySection.classList.remove('collapsed');
+            }
+        } else {
+            if (historyCollapsed) {
+                // Expand history, collapse sessions
+                this.historySection.classList.remove('collapsed');
+                this.sessionsSection.classList.add('collapsed');
+            } else {
+                // Collapse history, expand sessions
+                this.historySection.classList.add('collapsed');
+                this.sessionsSection.classList.remove('collapsed');
+            }
+        }
     }
 
     setDefaultDateTime() {
@@ -679,7 +708,7 @@ body{background:#1a1a2e;color:#fff;font-family:-apple-system,BlinkMacSystemFont,
 .pomo-phase.work{color:#ff4444}
 .pomo-phase.break{color:#00ff88}
 .pomo-phase.longBreak{color:#4488ff}
-.pomo-stats{font-size:.85rem;color:#666;width:100%;text-align:center;margin-bottom:6px}
+.pomo-stats{font-size:.85rem;color:#666;flex:0 0 100%;text-align:center;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,0.08)}
 .countdown{font-size:1.3rem;font-weight:700;color:#00d9ff;font-family:'Courier New',monospace;white-space:nowrap}
 .session-description{width:100%;text-align:center;font-size:.85rem;color:#aaa;max-height:4em;overflow-y:auto;white-space:pre-wrap;word-break:break-word;border-top:1px solid rgba(255,255,255,0.1);padding-top:8px;margin-top:8px;line-height:1.35}
 .empty{text-align:center;color:#555;padding:20px;font-style:italic}

@@ -439,10 +439,13 @@ input[type="time"]::-webkit-calendar-picker-indicator {
     display: flex;
     flex-direction: column;
     margin-bottom: 10px;
+    transition: flex 0.3s;
 }
 
 .sessions-section h2 {
     flex-shrink: 0;
+    cursor: pointer;
+    user-select: none;
 }
 
 /* History Section */
@@ -452,10 +455,37 @@ input[type="time"]::-webkit-calendar-picker-indicator {
     display: flex;
     flex-direction: column;
     margin-bottom: 10px;
+    transition: flex 0.3s;
 }
 
 .history-section h2 {
     flex-shrink: 0;
+    cursor: pointer;
+    user-select: none;
+}
+
+/* Collapsible Sections */
+.sessions-section.collapsed,
+.history-section.collapsed {
+    flex: 0 0 auto;
+    min-height: auto;
+}
+
+.sessions-section.collapsed .scrollable-list,
+.history-section.collapsed .scrollable-list {
+    display: none;
+}
+
+.section-toggle {
+    font-size: 0.7rem;
+    margin-right: 6px;
+    display: inline-block;
+    transition: transform 0.2s;
+    color: #666;
+}
+
+.collapsed .section-toggle {
+    transform: rotate(-90deg);
 }
 
 /* Scrollable Lists */
@@ -541,9 +571,11 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 .pomo-stats {
     font-size: 0.85rem;
     color: #666;
-    width: 100%;
+    flex: 0 0 100%;
     text-align: center;
     margin-bottom: 6px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .history-card {
