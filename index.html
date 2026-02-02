@@ -112,14 +112,14 @@
         </div>
 
         <!-- Active Sessions -->
-        <div class="sessions-section">
-            <h2>Active Sessions <span id="sessionCount">(0)</span> <button class="popout-btn header-popout" onclick="app.popoutAllSessions()" title="Pop out all sessions">⧉</button></h2>
+        <div class="sessions-section" id="sessionsSection">
+            <h2 onclick="app.toggleSection('sessions')"><span class="section-toggle">▼</span>Active Sessions <span id="sessionCount">(0)</span> <button class="popout-btn header-popout" onclick="event.stopPropagation(); app.popoutAllSessions()" title="Pop out all sessions">⧉</button></h2>
             <div id="sessionsList" class="scrollable-list"></div>
         </div>
 
         <!-- History Section -->
-        <div class="history-section">
-            <h2>History <span id="historyCount">(0)</span></h2>
+        <div class="history-section collapsed" id="historySection">
+            <h2 onclick="app.toggleSection('history')"><span class="section-toggle">▼</span>History <span id="historyCount">(0)</span></h2>
             <div id="historyList" class="scrollable-list"></div>
         </div>
 
