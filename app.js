@@ -328,9 +328,56 @@ class ReminderApp {
 
         session.triggered = false;
         this.playBriefAlarm(session);
-        this.sendNotification(`${session.name} - ${session.phase === 'work' ? 'WORK' : session.phase === 'break' ? 'BREAK' : 'LONG BREAK'}`);
+        const phaseText = session.phase === 'work' ? 'Work Session' : session.phase === 'break' ? 'Break' : 'Long Break';
+        this.sendNotification(`${session.name} - Starting ${phaseText}`);
+        this.showPhaseChangePopup(session, phaseText);
         this.saveSessions();
         this.renderSessions();
+    }
+
+    showPhaseChangePopup(session, phaseText) {
+        const phaseColors = { work: '#ff4444', break: '#00ff88', longBreak: '#4488ff' };
+        const phaseColor = phaseColors[session.phase] || '#00d9ff';
+        const phaseIcons = { work: '💪', break: '☕', longBreak: '🌴' };
+        const phaseIcon = phaseIcons[session.phase] || '⏰';
+
+        const popupWidth = 360;
+        const popupHeight = 240;
+        const left = (screen.width - popupWidth) / 2;
+        const top = (screen.height - popupHeight) / 2;
+
+        const popupHtml = `<!DOCTYPE html>
+<html><head><title>Pomodoro - ${phaseText}</title>
+${this.getPopupFavicon()}
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#1a1a2e;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+display:flex;justify-content:center;align-items:center;height:100vh;overflow:hidden}
+.wrap{text-align:center;padding:24px;width:100%}
+.icon{font-size:3rem;margin-bottom:10px}
+h2{font-size:1.4rem;color:${phaseColor};margin-bottom:6px}
+.name{font-size:.95rem;color:#888;margin-bottom:4px}
+.detail{font-size:.85rem;color:#666;margin-bottom:20px}
+.got-it{padding:12px 40px;border:none;border-radius:8px;background:${phaseColor};color:#fff;
+font-size:1rem;font-weight:600;cursor:pointer;transition:all .2s}
+.got-it:hover{transform:scale(1.05);filter:brightness(1.2)}
+</style></head><body>
+<div class="wrap">
+<div class="icon">${phaseIcon}</div>
+<h2>Starting ${this.escapeHtml(phaseText)}</h2>
+<div class="name">${this.escapeHtml(session.name)}</div>
+<div class="detail">Session ${session.currentSession}/${session.sessionsPerCycle} · Cycle ${session.currentCycle}/${session.totalCycles}</div>
+<button class="got-it" onclick="window.close()">Got it</button>
+</div></body></html>`;
+
+        const popup = window.open('', 'pomo_phase_' + Date.now(),
+            `width=${popupWidth},height=${popupHeight},left=${left},top=${top},resizable=no,scrollbars=no,toolbar=no,menubar=no,location=no,status=no`);
+
+        if (popup && !popup.closed) {
+            popup.document.write(popupHtml);
+            popup.document.close();
+            popup.focus();
+        }
     }
 
     async playBriefAlarm(session) {
@@ -366,7 +413,7 @@ class ReminderApp {
     }
 
     renderPomodoroCard(session, remaining) {
-        const phaseLabels = { work: 'WORK', break: 'BREAK', longBreak: 'LONG BREAK' };
+        const phaseLabels = { work: 'Work', break: 'Break', longBreak: 'Long Break' };
         const phaseLabel = phaseLabels[session.phase];
         const untilLongBreak = session.sessionsPerCycle - session.currentSession;
         const descriptionHtml = session.description ? `<div class="session-description">${this.escapeHtml(session.description)}</div>` : '';
@@ -376,18 +423,21 @@ class ReminderApp {
                 <div class="pomo-stats">
                     Session ${session.currentSession}/${session.sessionsPerCycle} · Cycle ${session.currentCycle}/${session.totalCycles} · ${session.completedSessions} done · ${untilLongBreak} until long break
                 </div>
-                <div class="session-info">
-                    <div class="session-name">${this.escapeHtml(session.name)}</div>
-                    <div class="session-meta">
-                        <span class="pomo-phase ${session.phase}">${phaseLabel}</span>
+                <div class="pomo-main-row">
+                    <div class="session-info">
+                        <div class="session-name">${this.escapeHtml(session.name)}</div>
+                        <div class="session-meta">
+                            <span class="session-type pomodoro">POMODORO</span>
+                            ${phaseLabel}
+                        </div>
                     </div>
-                </div>
-                <div class="session-actions">
-                    <div class="session-countdown">
-                        ${this.formatTimeRemaining(remaining)}
+                    <div class="session-actions">
+                        <div class="session-countdown">
+                            ${this.formatTimeRemaining(remaining)}
+                        </div>
+                        <button class="popout-btn" onclick="app.popoutSession(${session.id})" title="Pop out">⧉</button>
+                        <button class="delete-btn" onclick="app.deleteSession(${session.id})">×</button>
                     </div>
-                    <button class="popout-btn" onclick="app.popoutSession(${session.id})" title="Pop out">⧉</button>
-                    <button class="delete-btn" onclick="app.deleteSession(${session.id})">×</button>
                 </div>
                 ${descriptionHtml}
             </div>
@@ -704,10 +754,6 @@ body{background:#1a1a2e;color:#fff;font-family:-apple-system,BlinkMacSystemFont,
 .type.timer{background:rgba(0,255,136,0.15);color:#00ff88}
 .type.reminder{background:rgba(255,149,0,0.15);color:#ff9500}
 .type.pomodoro{background:rgba(255,68,68,0.15);color:#ff4444}
-.pomo-phase{font-size:.75rem;font-weight:700;text-transform:uppercase}
-.pomo-phase.work{color:#ff4444}
-.pomo-phase.break{color:#00ff88}
-.pomo-phase.longBreak{color:#4488ff}
 .pomo-stats{font-size:.85rem;color:#666;flex:0 0 100%;text-align:center;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,0.08)}
 .countdown{font-size:1.3rem;font-weight:700;color:#00d9ff;font-family:'Courier New',monospace;white-space:nowrap}
 .session-description{width:100%;text-align:center;font-size:.85rem;color:#aaa;max-height:4em;overflow-y:auto;white-space:pre-wrap;word-break:break-word;border-top:1px solid rgba(255,255,255,0.1);padding-top:8px;margin-top:8px;line-height:1.35}
@@ -720,14 +766,14 @@ h2{font-size:1rem;color:#aaa;margin-bottom:10px;display:flex;align-items:center;
         const descriptionHtml = session.description ? `<div class="session-description">${this.escapeHtml(session.description)}</div>` : '';
 
         if (session.type === 'pomodoro') {
-            const phaseLabels = { work: 'WORK', break: 'BREAK', longBreak: 'LONG BREAK' };
+            const phaseLabels = { work: 'Work', break: 'Break', longBreak: 'Long Break' };
             const phaseLabel = phaseLabels[session.phase];
             const untilLongBreak = session.sessionsPerCycle - session.currentSession;
             return `<div class="card pomodoro phase-${session.phase}">
 <div class="pomo-stats">Session ${session.currentSession}/${session.sessionsPerCycle} · Cycle ${session.currentCycle}/${session.totalCycles} · ${session.completedSessions} done · ${untilLongBreak} until long break</div>
-<div><div class="name">${this.escapeHtml(session.name)}</div>
-<div class="meta"><span class="pomo-phase ${session.phase}">${phaseLabel}</span></div></div>
-<div class="countdown">${this.formatTimeRemaining(remaining)}</div>
+<div style="display:flex;justify-content:space-between;align-items:center;width:100%"><div><div class="name">${this.escapeHtml(session.name)}</div>
+<div class="meta"><span class="type pomodoro">POMODORO</span> ${phaseLabel}</div></div>
+<div class="countdown">${this.formatTimeRemaining(remaining)}</div></div>
 ${descriptionHtml}</div>`;
         }
 

@@ -557,17 +557,6 @@ input[type="time"]::-webkit-calendar-picker-indicator {
     border-left-color: #4488ff;
 }
 
-.pomo-phase {
-    font-size: 0.75rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    margin-right: 6px;
-}
-
-.pomo-phase.work { color: #ff4444; }
-.pomo-phase.break { color: #00ff88; }
-.pomo-phase.longBreak { color: #4488ff; }
-
 .pomo-stats {
     font-size: 0.85rem;
     color: #666;
@@ -576,6 +565,13 @@ input[type="time"]::-webkit-calendar-picker-indicator {
     margin-bottom: 6px;
     padding-bottom: 6px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.pomo-main-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
 }
 
 .history-card {
