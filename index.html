@@ -12,14 +12,38 @@
         <h1>⏰ ONE reminder</h1>
 
         <div id="dailyTimes" class="daily-times">
-            <div class="times-row">
-                <span class="time-item"><span class="time-label">Brahma Muhurta</span> <span id="bmTime" class="time-value">--:--</span></span>
-                <span class="time-item"><span class="time-label">Stop Eating</span> <span id="gkTime" class="time-value">--:--</span></span>
-                <span class="time-item"><span class="time-label">Sleep</span> <span id="pkTime" class="time-value">--:--</span></span>
+            <div class="tz-row">
+                <select id="tzSelect"></select>
+            </div>
+            <div class="dt-row" id="bmRow">
+                <span class="dt-label">Brahma Muhurta</span>
+                <input type="number" id="bmOffset" class="offset-input" min="1" max="999" value="96"><span class="offset-unit">min</span>
+                <span class="dt-date" id="bmDate">--</span>
+                <span class="dt-time" id="bmTime">--:--</span>
+            </div>
+            <div class="dt-row" id="gkRow">
+                <span class="dt-label">Godhuli Kaal</span>
+                <input type="number" id="gkOffset" class="offset-input" min="1" max="9999" value="720"><span class="offset-unit">min</span>
+                <span class="dt-date" id="gkDate">--</span>
+                <span class="dt-time" id="gkTime">--:--</span>
+            </div>
+            <div class="dt-row" id="pkRow">
+                <span class="dt-label">Pradosha Kaal</span>
+                <input type="number" id="pkOffset" class="offset-input" min="1" max="9999" value="510"><span class="offset-unit">min</span>
+                <span class="dt-date" id="pkDate">--</span>
+                <span class="dt-time" id="pkTime">--:--</span>
             </div>
             <div class="sun-row">
-                <span class="sun-item">Sunrise <span id="sunriseTime" class="time-value">--:--</span></span>
-                <span class="sun-item">Sunset <span id="sunsetTime" class="time-value">--:--</span></span>
+                <span class="sun-item" id="sunriseItem">
+                    <span class="sun-label">Sunrise</span>
+                    <span class="dt-date" id="sunriseDate">--</span>
+                    <span class="dt-time" id="sunriseTime">--:--</span>
+                </span>
+                <span class="sun-item" id="sunsetItem">
+                    <span class="sun-label">Sunset</span>
+                    <span class="dt-date" id="sunsetDate">--</span>
+                    <span class="dt-time" id="sunsetTime">--:--</span>
+                </span>
             </div>
         </div>
 

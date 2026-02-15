@@ -69,36 +69,65 @@ const SunCalc = (() => {
     };
 })();
 
-// Daily times calculator based on sunrise
+// Daily times system — each time independently shows next occurrence
 const DailyTimes = {
-    BM_OFFSET: 96,         // Brahma Muhurta: 96min before sunrise
-    GK_HOURS: 12,          // Godhuli Kaal (stop eating): 12h before next BM
-    PK_HOURS: 8.5,         // Pradosha Kaal (sleep): 8.5h before next BM
+    // Derive lat/lng from timezone offset
+    // Latitude: ~48.85°N (Central European default), Longitude: offset * 15
+    DEFAULT_LAT: 48.85,
 
-    calculate(lat, lng) {
+    getCoords(tzOffset) {
+        return { lat: this.DEFAULT_LAT, lng: tzOffset * 15 };
+    },
+
+    // Get sunrise/sunset for multiple days, return all as array
+    getSunTimes(lat, lng, days) {
+        const results = [];
+        for (let i = -1; i <= days; i++) {
+            const d = new Date();
+            d.setHours(0, 0, 0, 0);
+            d.setDate(d.getDate() + i);
+            const rise = SunCalc.getSunrise(d, lat, lng);
+            const set = SunCalc.getSunset(d, lat, lng);
+            results.push({ date: new Date(d), sunrise: rise, sunset: set });
+        }
+        return results;
+    },
+
+    // Find the next occurrence of each time that's still in the future
+    calculate(tzOffset, bmMin, gkMin, pkMin) {
+        const { lat, lng } = this.getCoords(tzOffset);
         const now = new Date();
-        const today = new Date(now); today.setHours(0, 0, 0, 0);
-        const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
+        const sunDays = this.getSunTimes(lat, lng, 3); // yesterday through 3 days ahead
 
-        const todaySunrise = SunCalc.getSunrise(today, lat, lng);
-        const todayBM = todaySunrise ? new Date(todaySunrise.getTime() - this.BM_OFFSET * 60000) : null;
-        const bmPassed = !todayBM || todayBM <= now;
+        // Collect all sunrises and sunsets
+        const allSunrises = sunDays.map(d => d.sunrise).filter(Boolean);
+        const allSunsets = sunDays.map(d => d.sunset).filter(Boolean);
 
-        const targetDay = bmPassed ? tomorrow : today;
-        const sunrise = bmPassed ? SunCalc.getSunrise(tomorrow, lat, lng) : todaySunrise;
-        if (!sunrise) return null;
+        // Next sunrise & sunset
+        const nextSunrise = allSunrises.find(t => t > now) || null;
+        const nextSunset = allSunsets.find(t => t > now) || null;
 
-        const sunset = SunCalc.getSunset(targetDay, lat, lng);
-        const bm = new Date(sunrise.getTime() - this.BM_OFFSET * 60000);
-        const gk = new Date(bm.getTime() - this.GK_HOURS * 3600000);
-        const pk = new Date(bm.getTime() - this.PK_HOURS * 3600000);
+        // For BM/GK/PK: calculate from every sunrise, find next future occurrence
+        const allBM = allSunrises.map(sr => new Date(sr.getTime() - bmMin * 60000));
+        const allGK = allBM.map(bm => new Date(bm.getTime() - gkMin * 60000));
+        const allPK = allBM.map(bm => new Date(bm.getTime() - pkMin * 60000));
 
-        return { sunrise, sunset, brahmaMuhurta: bm, godhuliKaal: gk, pradoshaKaal: pk };
+        const nextBM = allBM.find(t => t > now) || null;
+        const nextGK = allGK.find(t => t > now) || null;
+        const nextPK = allPK.find(t => t > now) || null;
+
+        return { nextSunrise, nextSunset, nextBM, nextGK, nextPK };
     },
 
     formatTime(date) {
         if (!date) return '--:--';
         return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    },
+
+    formatDate(date) {
+        if (!date) return '--';
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        return `${months[date.getMonth()]} ${date.getDate()}`;
     }
 };
 
@@ -120,7 +149,6 @@ class ReminderApp {
 
         this.recentTimers = [];
         this.customSounds = {};
-        this.userLocation = null;
 
         this.init();
     }
@@ -139,39 +167,95 @@ class ReminderApp {
     }
 
     initDailyTimes() {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (pos) => {
-                    this.userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                    this.updateDailyTimes();
-                },
-                () => this.updateDailyTimes(),
-                { enableHighAccuracy: false, timeout: 10000 }
-            );
+        const tzSelect = document.getElementById('tzSelect');
+        // Populate timezone dropdown UTC-12 to UTC+14
+        for (let i = -12; i <= 14; i++) {
+            const opt = document.createElement('option');
+            opt.value = i;
+            opt.textContent = `UTC${i >= 0 ? '+' : ''}${i}`;
+            tzSelect.appendChild(opt);
         }
-        // Update every minute
-        setInterval(() => this.updateDailyTimes(), 60000);
+
+        // Load saved settings or defaults
+        const saved = JSON.parse(localStorage.getItem('oneReminder_dtSettings') || 'null');
+        if (saved) {
+            tzSelect.value = saved.tz ?? 1;
+            document.getElementById('bmOffset').value = saved.bm ?? 96;
+            document.getElementById('gkOffset').value = saved.gk ?? 720;
+            document.getElementById('pkOffset').value = saved.pk ?? 510;
+        } else {
+            tzSelect.value = 1; // Default UTC+1
+        }
+
+        // Bind change events
+        tzSelect.addEventListener('change', () => this.saveDTSettings());
+        ['bmOffset', 'gkOffset', 'pkOffset'].forEach(id => {
+            document.getElementById(id).addEventListener('change', () => this.saveDTSettings());
+        });
+
+        this.updateDailyTimes();
+        // Update every 10 seconds for responsive time flipping
+        setInterval(() => this.updateDailyTimes(), 10000);
+    }
+
+    saveDTSettings() {
+        const settings = {
+            tz: parseInt(document.getElementById('tzSelect').value),
+            bm: parseInt(document.getElementById('bmOffset').value) || 96,
+            gk: parseInt(document.getElementById('gkOffset').value) || 720,
+            pk: parseInt(document.getElementById('pkOffset').value) || 510,
+        };
+        localStorage.setItem('oneReminder_dtSettings', JSON.stringify(settings));
+        this.updateDailyTimes();
     }
 
     updateDailyTimes() {
-        if (!this.userLocation) {
-            // Default: no location available
-            document.getElementById('bmTime').textContent = '--:--';
-            document.getElementById('gkTime').textContent = '--:--';
-            document.getElementById('pkTime').textContent = '--:--';
-            document.getElementById('sunriseTime').textContent = '--:--';
-            document.getElementById('sunsetTime').textContent = '--:--';
-            return;
+        const tz = parseInt(document.getElementById('tzSelect').value);
+        const bmMin = parseInt(document.getElementById('bmOffset').value) || 96;
+        const gkMin = parseInt(document.getElementById('gkOffset').value) || 720;
+        const pkMin = parseInt(document.getElementById('pkOffset').value) || 510;
+
+        const times = DailyTimes.calculate(tz, bmMin, gkMin, pkMin);
+
+        // Update times and dates
+        document.getElementById('bmTime').textContent = DailyTimes.formatTime(times.nextBM);
+        document.getElementById('bmDate').textContent = DailyTimes.formatDate(times.nextBM);
+        document.getElementById('gkTime').textContent = DailyTimes.formatTime(times.nextGK);
+        document.getElementById('gkDate').textContent = DailyTimes.formatDate(times.nextGK);
+        document.getElementById('pkTime').textContent = DailyTimes.formatTime(times.nextPK);
+        document.getElementById('pkDate').textContent = DailyTimes.formatDate(times.nextPK);
+        document.getElementById('sunriseTime').textContent = DailyTimes.formatTime(times.nextSunrise);
+        document.getElementById('sunriseDate').textContent = DailyTimes.formatDate(times.nextSunrise);
+        document.getElementById('sunsetTime').textContent = DailyTimes.formatTime(times.nextSunset);
+        document.getElementById('sunsetDate').textContent = DailyTimes.formatDate(times.nextSunset);
+
+        // Highlight upcoming: find the earliest future time among all 5
+        const allTimes = [
+            { el: 'bmRow', time: times.nextBM },
+            { el: 'gkRow', time: times.nextGK },
+            { el: 'pkRow', time: times.nextPK },
+        ].filter(t => t.time);
+
+        const sunTimes = [
+            { el: 'sunriseItem', time: times.nextSunrise },
+            { el: 'sunsetItem', time: times.nextSunset },
+        ].filter(t => t.time);
+
+        // Clear all highlights
+        ['bmRow', 'gkRow', 'pkRow'].forEach(id => document.getElementById(id).classList.remove('upcoming'));
+        ['sunriseItem', 'sunsetItem'].forEach(id => document.getElementById(id).classList.remove('upcoming'));
+
+        // Highlight the single next upcoming among BM/GK/PK
+        if (allTimes.length) {
+            allTimes.sort((a, b) => a.time - b.time);
+            document.getElementById(allTimes[0].el).classList.add('upcoming');
         }
 
-        const times = DailyTimes.calculate(this.userLocation.lat, this.userLocation.lng);
-        if (!times) return;
-
-        document.getElementById('bmTime').textContent = DailyTimes.formatTime(times.brahmaMuhurta);
-        document.getElementById('gkTime').textContent = DailyTimes.formatTime(times.godhuliKaal);
-        document.getElementById('pkTime').textContent = DailyTimes.formatTime(times.pradoshaKaal);
-        document.getElementById('sunriseTime').textContent = DailyTimes.formatTime(times.sunrise);
-        document.getElementById('sunsetTime').textContent = DailyTimes.formatTime(times.sunset);
+        // Highlight the single next upcoming among sunrise/sunset
+        if (sunTimes.length) {
+            sunTimes.sort((a, b) => a.time - b.time);
+            document.getElementById(sunTimes[0].el).classList.add('upcoming');
+        }
     }
 
     bindElements() {

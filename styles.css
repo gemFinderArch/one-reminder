@@ -38,59 +38,146 @@ h1 {
 
 /* Daily Times Section */
 .daily-times {
-    text-align: center;
     margin-bottom: 15px;
-    padding: 10px 12px;
+    padding: 8px 10px;
     background: rgba(255, 255, 255, 0.04);
     border-radius: 10px;
     flex-shrink: 0;
 }
 
-.times-row {
-    display: flex;
-    justify-content: space-around;
-    margin-bottom: 8px;
+.tz-row {
+    text-align: right;
+    margin-bottom: 6px;
 }
 
-.time-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-}
-
-.time-label {
-    font-size: 0.7rem;
+.tz-row select {
+    padding: 2px 6px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.05);
     color: #888;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    font-size: 0.7rem;
+    cursor: pointer;
+    appearance: none;
 }
 
-.time-value {
+.tz-row select:focus {
+    outline: none;
+    border-color: #00d9ff;
+}
+
+.dt-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 0;
+    border-radius: 4px;
+    transition: background 0.3s;
+}
+
+.dt-label {
+    font-size: 0.75rem;
+    color: #888;
+    min-width: 100px;
+}
+
+.offset-input {
+    width: 42px;
+    padding: 2px 3px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.05);
+    color: #aaa;
+    font-size: 0.7rem;
+    text-align: center;
+    -moz-appearance: textfield;
+}
+
+.offset-input::-webkit-inner-spin-button,
+.offset-input::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.offset-input:focus {
+    outline: none;
+    border-color: #00d9ff;
+}
+
+.offset-unit {
+    font-size: 0.65rem;
+    color: #555;
+    margin-right: auto;
+}
+
+.dt-date {
+    font-size: 0.68rem;
+    color: #666;
+    white-space: nowrap;
+}
+
+.dt-time {
     font-size: 0.85rem;
     color: #e0e0e0;
     font-family: 'Courier New', monospace;
+    min-width: 48px;
+    text-align: right;
 }
 
 .sun-row {
     display: flex;
-    justify-content: center;
-    gap: 30px;
+    justify-content: space-around;
     padding-top: 6px;
+    margin-top: 4px;
     border-top: 1px solid rgba(255, 255, 255, 0.06);
-    font-size: 0.72rem;
-    color: #666;
 }
 
 .sun-item {
     display: flex;
     align-items: center;
     gap: 5px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: background 0.3s;
 }
 
-.sun-item .time-value {
+.sun-label {
+    font-size: 0.7rem;
+    color: #666;
+}
+
+.sun-item .dt-date {
+    font-size: 0.65rem;
+}
+
+.sun-item .dt-time {
     font-size: 0.78rem;
     color: #ff9500;
+}
+
+/* Highlight for upcoming time */
+.dt-row.upcoming {
+    background: rgba(0, 217, 255, 0.08);
+}
+
+.dt-row.upcoming .dt-label {
+    color: #00d9ff;
+}
+
+.dt-row.upcoming .dt-time {
+    color: #00d9ff;
+}
+
+.sun-item.upcoming {
+    background: rgba(255, 149, 0, 0.12);
+}
+
+.sun-item.upcoming .sun-label {
+    color: #ff9500;
+}
+
+.sun-item.upcoming .dt-time {
+    color: #ffb800;
 }
 
 h2 {
@@ -951,16 +1038,13 @@ input[type="time"]::-webkit-calendar-picker-indicator {
         margin-bottom: 10px;
     }
 
-    .times-row {
-        gap: 8px;
+    .dt-label {
+        min-width: 80px;
+        font-size: 0.68rem;
     }
 
-    .time-label {
-        font-size: 0.65rem;
-    }
-
-    .time-value {
-        font-size: 0.8rem;
+    .offset-input {
+        width: 38px;
     }
 
     .countdown-inputs {
