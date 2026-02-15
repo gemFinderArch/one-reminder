@@ -500,11 +500,21 @@ class ReminderApp {
     }
 
     startPomodoro(name, soundSettings, description) {
-        const workMin = parseInt(document.getElementById('pomoWork').value) || 25;
+        const workMin = parseInt(document.getElementById('pomoWork').value) || 55;
         const breakMin = parseInt(document.getElementById('pomoBreak').value) || 5;
         const sessionsPerCycle = parseInt(document.getElementById('pomoSessions').value) || 4;
-        const longBreakMin = parseInt(document.getElementById('pomoLongBreak').value) || 15;
-        const totalCycles = parseInt(document.getElementById('pomoCycles').value) || 1;
+        const longBreakMin = parseInt(document.getElementById('pomoLongBreak').value) || 35;
+        const totalCycles = parseInt(document.getElementById('pomoCycles').value) || 3;
+
+        // Calculate total duration excluding last long break
+        // Each cycle: (sessions * work) + ((sessions-1) * break) + long break
+        // Last cycle: no long break at the end
+        const cycleWork = sessionsPerCycle * workMin;
+        const cycleBreaks = (sessionsPerCycle - 1) * breakMin;
+        const fullCycleDuration = (cycleWork + cycleBreaks + longBreakMin) * 60 * 1000;
+        const lastCycleDuration = (cycleWork + cycleBreaks) * 60 * 1000;
+        const totalDuration = (totalCycles > 1 ? fullCycleDuration * (totalCycles - 1) : 0) + lastCycleDuration;
+        const finishTime = Date.now() + totalDuration;
 
         const session = {
             id: this.nextId++,
@@ -522,6 +532,7 @@ class ReminderApp {
             completedSessions: 0,
             targetTime: Date.now() + workMin * 60 * 1000,
             originalDuration: workMin * 60 * 1000,
+            finishTime,
             ...soundSettings,
             triggered: false,
             snoozeCount: 0,
@@ -537,8 +548,16 @@ class ReminderApp {
         if (session.phase === 'work') {
             session.completedSessions++;
             const isLastSessionInCycle = session.currentSession >= session.sessionsPerCycle;
+            const isLastCycle = session.currentCycle >= session.totalCycles;
 
-            if (isLastSessionInCycle) {
+            if (isLastSessionInCycle && isLastCycle) {
+                // Last session of last cycle — done, skip long break
+                this.addToHistory(session);
+                this.deleteSession(session.id);
+                this.playBriefAlarm(session);
+                this.sendNotification(`${session.name} - All done!`);
+                return;
+            } else if (isLastSessionInCycle) {
                 session.phase = 'longBreak';
                 session.targetTime = Date.now() + session.longBreakDuration;
             } else {
@@ -649,11 +668,18 @@ font-size:1rem;font-weight:600;cursor:pointer;transition:all .2s}
         }
     }
 
+    formatFinishTime(timestamp) {
+        if (!timestamp) return '';
+        const d = new Date(timestamp);
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
     renderPomodoroCard(session, remaining) {
         const phaseLabels = { work: 'Work', break: 'Break', longBreak: 'Long Break' };
         const phaseLabel = phaseLabels[session.phase];
         const untilLongBreak = session.sessionsPerCycle - session.currentSession;
         const descriptionHtml = session.description ? `<div class="session-description">${this.escapeHtml(session.description)}</div>` : '';
+        const finishTimeStr = session.finishTime ? `Finish ${this.formatFinishTime(session.finishTime)}` : '';
 
         return `
             <div class="session-card pomodoro phase-${session.phase}" data-id="${session.id}">
@@ -662,7 +688,7 @@ font-size:1rem;font-weight:600;cursor:pointer;transition:all .2s}
                 </div>
                 <div class="pomo-main-row">
                     <div class="session-info">
-                        <div class="session-name">${this.escapeHtml(session.name)}</div>
+                        <div class="session-name">${this.escapeHtml(session.name)}${finishTimeStr ? ` <span class="pomo-finish">${finishTimeStr}</span>` : ''}</div>
                         <div class="session-meta">
                             <span class="session-type pomodoro">POMODORO</span>
                             ${phaseLabel}

@@ -48,9 +48,9 @@
 
             <!-- Type Selector -->
             <div class="type-selector">
-                <button class="type-btn active" data-type="timer" onclick="app.setEventType('timer')">Timer</button>
-                <button class="type-btn" data-type="reminder" onclick="app.setEventType('reminder')">Reminder</button>
                 <button class="type-btn" data-type="pomodoro" onclick="app.setEventType('pomodoro')">Pomodoro</button>
+                <button class="type-btn" data-type="reminder" onclick="app.setEventType('reminder')">Reminder</button>
+                <button class="type-btn active" data-type="timer" onclick="app.setEventType('timer')">Timer</button>
             </div>
 
             <!-- Timer Options -->
@@ -88,7 +88,7 @@
             <div id="pomodoroOptions" class="event-options hidden">
                 <div class="pomodoro-inputs">
                     <div class="pomo-field">
-                        <input type="number" id="pomoWork" min="1" max="120" value="25">
+                        <input type="number" id="pomoWork" min="1" max="120" value="55">
                         <label>Work (min)</label>
                     </div>
                     <div class="pomo-field">
@@ -100,11 +100,11 @@
                         <label>Sessions</label>
                     </div>
                     <div class="pomo-field">
-                        <input type="number" id="pomoLongBreak" min="1" max="60" value="15">
+                        <input type="number" id="pomoLongBreak" min="1" max="60" value="35">
                         <label>Long Break</label>
                     </div>
                     <div class="pomo-field">
-                        <input type="number" id="pomoCycles" min="1" max="20" value="1">
+                        <input type="number" id="pomoCycles" min="1" max="20" value="3">
                         <label>Cycles</label>
                     </div>
                 </div>

@@ -704,6 +704,14 @@ input[type="time"]::-webkit-calendar-picker-indicator {
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.pomo-finish {
+    font-size: 0.75rem;
+    color: #00ff88;
+    font-weight: 400;
+    margin-left: 6px;
+    font-family: 'Courier New', monospace;
+}
+
 .pomo-main-row {
     display: flex;
     justify-content: space-between;
