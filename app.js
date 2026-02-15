@@ -1,3 +1,107 @@
+// NOAA Solar Calculator for precise sunrise/sunset times
+const SunCalc = (() => {
+    const toRad = d => d * Math.PI / 180;
+    const toDeg = r => r * 180 / Math.PI;
+
+    function julianDay(y, m, d) {
+        if (m <= 2) { y--; m += 12; }
+        const A = Math.floor(y / 100);
+        const B = 2 - A + Math.floor(A / 4);
+        return Math.floor(365.25 * (y + 4716)) + Math.floor(30.6001 * (m + 1)) + d + B - 1524.5;
+    }
+
+    function solarParams(T) {
+        const L0 = (280.46646 + T * (36000.76983 + T * 0.0003032)) % 360;
+        const M = 357.52911 + T * (35999.05029 - T * 0.0001537);
+        const e = 0.016708634 - T * (0.000042037 + T * 0.0000001267);
+        const Mrad = toRad(M);
+        const C = (1.914602 - T * (0.004817 + T * 0.000014)) * Math.sin(Mrad)
+            + (0.019993 - T * 0.000101) * Math.sin(2 * Mrad)
+            + 0.000289 * Math.sin(3 * Mrad);
+        const sunTrueLong = L0 + C;
+        const omega = 125.04 - 1934.136 * T;
+        const sunApparentLong = sunTrueLong - 0.00569 - 0.00478 * Math.sin(toRad(omega));
+        const meanObliq = 23 + (26 + (21.448 - T * (46.815 + T * (0.00059 - T * 0.001813))) / 60) / 60;
+        const obliqCorr = meanObliq + 0.00256 * Math.cos(toRad(omega));
+        const dec = Math.asin(Math.sin(toRad(obliqCorr)) * Math.sin(toRad(sunApparentLong)));
+        const y = Math.tan(toRad(obliqCorr) / 2) ** 2;
+        const L0rad = toRad(L0);
+        const eqTime = 4 * toDeg(
+            y * Math.sin(2 * L0rad) - 2 * e * Math.sin(Mrad)
+            + 4 * e * y * Math.sin(Mrad) * Math.cos(2 * L0rad)
+            - 0.5 * y * y * Math.sin(4 * L0rad)
+            - 1.25 * e * e * Math.sin(2 * Mrad)
+        );
+        return { dec, eqTime };
+    }
+
+    function calcTimeUTC(JD, lat, lng, isSunrise) {
+        const zenith = 90.833;
+        const latRad = toRad(lat);
+        const T0 = (JD - 2451545.0) / 36525.0;
+        const { dec: dec0, eqTime: eqTime0 } = solarParams(T0);
+        let cosHA = (Math.cos(toRad(zenith)) / (Math.cos(latRad) * Math.cos(dec0))) - Math.tan(latRad) * Math.tan(dec0);
+        if (cosHA > 1 || cosHA < -1) return null;
+        const HA0 = toDeg(Math.acos(cosHA));
+        const time0 = 720 - 4 * (lng + (isSunrise ? HA0 : -HA0)) - eqTime0;
+        const JDtime = JD + time0 / 1440.0;
+        const T1 = (JDtime - 2451545.0) / 36525.0;
+        const { dec: dec1, eqTime: eqTime1 } = solarParams(T1);
+        cosHA = (Math.cos(toRad(zenith)) / (Math.cos(latRad) * Math.cos(dec1))) - Math.tan(latRad) * Math.tan(dec1);
+        if (cosHA > 1 || cosHA < -1) return null;
+        const HA1 = toDeg(Math.acos(cosHA));
+        return 720 - 4 * (lng + (isSunrise ? HA1 : -HA1)) - eqTime1;
+    }
+
+    function getTime(date, lat, lng, isSunrise) {
+        const JD = julianDay(date.getFullYear(), date.getMonth() + 1, date.getDate());
+        const utcMin = calcTimeUTC(JD, lat, lng, isSunrise);
+        if (utcMin === null) return null;
+        const result = new Date(date);
+        result.setUTCHours(0, 0, 0, 0);
+        result.setTime(result.getTime() + utcMin * 60 * 1000);
+        return result;
+    }
+
+    return {
+        getSunrise: (date, lat, lng) => getTime(date, lat, lng, true),
+        getSunset: (date, lat, lng) => getTime(date, lat, lng, false),
+    };
+})();
+
+// Daily times calculator based on sunrise
+const DailyTimes = {
+    BM_OFFSET: 96,         // Brahma Muhurta: 96min before sunrise
+    GK_HOURS: 12,          // Godhuli Kaal (stop eating): 12h before next BM
+    PK_HOURS: 8.5,         // Pradosha Kaal (sleep): 8.5h before next BM
+
+    calculate(lat, lng) {
+        const now = new Date();
+        const today = new Date(now); today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
+
+        const todaySunrise = SunCalc.getSunrise(today, lat, lng);
+        const todayBM = todaySunrise ? new Date(todaySunrise.getTime() - this.BM_OFFSET * 60000) : null;
+        const bmPassed = !todayBM || todayBM <= now;
+
+        const targetDay = bmPassed ? tomorrow : today;
+        const sunrise = bmPassed ? SunCalc.getSunrise(tomorrow, lat, lng) : todaySunrise;
+        if (!sunrise) return null;
+
+        const sunset = SunCalc.getSunset(targetDay, lat, lng);
+        const bm = new Date(sunrise.getTime() - this.BM_OFFSET * 60000);
+        const gk = new Date(bm.getTime() - this.GK_HOURS * 3600000);
+        const pk = new Date(bm.getTime() - this.PK_HOURS * 3600000);
+
+        return { sunrise, sunset, brahmaMuhurta: bm, godhuliKaal: gk, pradoshaKaal: pk };
+    },
+
+    formatTime(date) {
+        if (!date) return '--:--';
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+};
+
 // One Reminder - Main Application
 
 class ReminderApp {
@@ -16,6 +120,7 @@ class ReminderApp {
 
         this.recentTimers = [];
         this.customSounds = {};
+        this.userLocation = null;
 
         this.init();
     }
@@ -30,6 +135,43 @@ class ReminderApp {
         this.renderSessions();
         this.renderHistory();
         this.startUpdateLoop();
+        this.initDailyTimes();
+    }
+
+    initDailyTimes() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    this.userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                    this.updateDailyTimes();
+                },
+                () => this.updateDailyTimes(),
+                { enableHighAccuracy: false, timeout: 10000 }
+            );
+        }
+        // Update every minute
+        setInterval(() => this.updateDailyTimes(), 60000);
+    }
+
+    updateDailyTimes() {
+        if (!this.userLocation) {
+            // Default: no location available
+            document.getElementById('bmTime').textContent = '--:--';
+            document.getElementById('gkTime').textContent = '--:--';
+            document.getElementById('pkTime').textContent = '--:--';
+            document.getElementById('sunriseTime').textContent = '--:--';
+            document.getElementById('sunsetTime').textContent = '--:--';
+            return;
+        }
+
+        const times = DailyTimes.calculate(this.userLocation.lat, this.userLocation.lng);
+        if (!times) return;
+
+        document.getElementById('bmTime').textContent = DailyTimes.formatTime(times.brahmaMuhurta);
+        document.getElementById('gkTime').textContent = DailyTimes.formatTime(times.godhuliKaal);
+        document.getElementById('pkTime').textContent = DailyTimes.formatTime(times.pradoshaKaal);
+        document.getElementById('sunriseTime').textContent = DailyTimes.formatTime(times.sunrise);
+        document.getElementById('sunsetTime').textContent = DailyTimes.formatTime(times.sunset);
     }
 
     bindElements() {
