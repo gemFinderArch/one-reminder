@@ -12,26 +12,20 @@
         <h1>⏰ ONE reminder</h1>
 
         <div id="dailyTimes" class="daily-times">
-            <div class="tz-row">
-                <select id="tzSelect"></select>
-            </div>
             <div class="dt-row" id="bmRow">
                 <span class="dt-label">Brahma Muhurta</span>
-                <input type="number" id="bmOffset" class="offset-input" min="1" max="999" value="96"><span class="offset-unit">min</span>
-                <span class="dt-date" id="bmDate">--</span>
-                <span class="dt-time" id="bmTime">--:--</span>
+                <span class="dt-datetime"><span class="dt-date" id="bmDate">--</span> <span class="dt-time" id="bmTime">--:--</span></span>
+                <span class="dt-offset"><input type="number" id="bmOffset" class="offset-input" min="1" max="999" value="96"><span class="offset-unit">min</span></span>
             </div>
             <div class="dt-row" id="gkRow">
                 <span class="dt-label">Godhuli Kaal</span>
-                <input type="number" id="gkOffset" class="offset-input" min="1" max="9999" value="720"><span class="offset-unit">min</span>
-                <span class="dt-date" id="gkDate">--</span>
-                <span class="dt-time" id="gkTime">--:--</span>
+                <span class="dt-datetime"><span class="dt-date" id="gkDate">--</span> <span class="dt-time" id="gkTime">--:--</span></span>
+                <span class="dt-offset"><input type="number" id="gkOffset" class="offset-input" min="1" max="9999" value="720"><span class="offset-unit">min</span></span>
             </div>
             <div class="dt-row" id="pkRow">
                 <span class="dt-label">Pradosha Kaal</span>
-                <input type="number" id="pkOffset" class="offset-input" min="1" max="9999" value="510"><span class="offset-unit">min</span>
-                <span class="dt-date" id="pkDate">--</span>
-                <span class="dt-time" id="pkTime">--:--</span>
+                <span class="dt-datetime"><span class="dt-date" id="pkDate">--</span> <span class="dt-time" id="pkTime">--:--</span></span>
+                <span class="dt-offset"><input type="number" id="pkOffset" class="offset-input" min="1" max="9999" value="510"><span class="offset-unit">min</span></span>
             </div>
             <div class="sun-row">
                 <span class="sun-item" id="sunriseItem">

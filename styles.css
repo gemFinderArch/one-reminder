@@ -39,37 +39,17 @@ h1 {
 /* Daily Times Section */
 .daily-times {
     margin-bottom: 15px;
-    padding: 8px 10px;
+    padding: 8px 12px;
     background: rgba(255, 255, 255, 0.04);
     border-radius: 10px;
     flex-shrink: 0;
 }
 
-.tz-row {
-    text-align: right;
-    margin-bottom: 6px;
-}
-
-.tz-row select {
-    padding: 2px 6px;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 4px;
-    background: rgba(255, 255, 255, 0.05);
-    color: #888;
-    font-size: 0.7rem;
-    cursor: pointer;
-    appearance: none;
-}
-
-.tz-row select:focus {
-    outline: none;
-    border-color: #00d9ff;
-}
-
 .dt-row {
     display: flex;
     align-items: center;
-    gap: 6px;
+    justify-content: center;
+    gap: 8px;
     padding: 3px 0;
     border-radius: 4px;
     transition: background 0.3s;
@@ -78,11 +58,39 @@ h1 {
 .dt-label {
     font-size: 0.75rem;
     color: #888;
-    min-width: 100px;
+    width: 110px;
+    text-align: right;
+}
+
+.dt-datetime {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    width: 120px;
+    justify-content: center;
+}
+
+.dt-date {
+    font-size: 0.68rem;
+    color: #666;
+    white-space: nowrap;
+}
+
+.dt-time {
+    font-size: 0.85rem;
+    color: #e0e0e0;
+    font-family: 'Courier New', monospace;
+}
+
+.dt-offset {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    width: 60px;
 }
 
 .offset-input {
-    width: 42px;
+    width: 40px;
     padding: 2px 3px;
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 3px;
@@ -107,26 +115,12 @@ h1 {
 .offset-unit {
     font-size: 0.65rem;
     color: #555;
-    margin-right: auto;
-}
-
-.dt-date {
-    font-size: 0.68rem;
-    color: #666;
-    white-space: nowrap;
-}
-
-.dt-time {
-    font-size: 0.85rem;
-    color: #e0e0e0;
-    font-family: 'Courier New', monospace;
-    min-width: 48px;
-    text-align: right;
 }
 
 .sun-row {
     display: flex;
-    justify-content: space-around;
+    justify-content: center;
+    gap: 20px;
     padding-top: 6px;
     margin-top: 4px;
     border-top: 1px solid rgba(255, 255, 255, 0.06);
@@ -1039,12 +1033,16 @@ input[type="time"]::-webkit-calendar-picker-indicator {
     }
 
     .dt-label {
-        min-width: 80px;
+        width: 85px;
         font-size: 0.68rem;
     }
 
+    .dt-datetime {
+        width: 105px;
+    }
+
     .offset-input {
-        width: 38px;
+        width: 36px;
     }
 
     .countdown-inputs {
