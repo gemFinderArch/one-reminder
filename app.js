@@ -148,7 +148,7 @@ class ReminderApp {
         this.alarmTimeout = null;
         this.customAudioBuffer = null;
         this.customAudioData = null;
-        this.currentEventType = 'timer';
+        this.currentEventType = 'pomodoro';
 
         this.recentTimers = [];
         this.customSounds = {};
@@ -677,18 +677,17 @@ font-size:1rem;font-weight:600;cursor:pointer;transition:all .2s}
     renderPomodoroCard(session, remaining) {
         const phaseLabels = { work: 'Work', break: 'Break', longBreak: 'Long Break' };
         const phaseLabel = phaseLabels[session.phase];
-        const untilLongBreak = session.sessionsPerCycle - session.currentSession;
         const descriptionHtml = session.description ? `<div class="session-description">${this.escapeHtml(session.description)}</div>` : '';
-        const finishTimeStr = session.finishTime ? `Finish ${this.formatFinishTime(session.finishTime)}` : '';
+        const finishTimeStr = session.finishTime ? this.formatFinishTime(session.finishTime) : '';
 
         return `
             <div class="session-card pomodoro phase-${session.phase}" data-id="${session.id}">
                 <div class="pomo-stats">
-                    Session ${session.currentSession}/${session.sessionsPerCycle} · Cycle ${session.currentCycle}/${session.totalCycles} · ${session.completedSessions} done · ${untilLongBreak} until long break
+                    Session <span class="pomo-current">${session.currentSession}</span>/${session.sessionsPerCycle} · Cycle <span class="pomo-current">${session.currentCycle}</span>/${session.totalCycles}${finishTimeStr ? ` · <span class="pomo-finish">Finish ${finishTimeStr}</span>` : ''}
                 </div>
                 <div class="pomo-main-row">
                     <div class="session-info">
-                        <div class="session-name">${this.escapeHtml(session.name)}${finishTimeStr ? ` <span class="pomo-finish">${finishTimeStr}</span>` : ''}</div>
+                        <div class="session-name">${this.escapeHtml(session.name)}</div>
                         <div class="session-meta">
                             <span class="session-type pomodoro">POMODORO</span>
                             ${phaseLabel}

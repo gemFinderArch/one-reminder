@@ -48,13 +48,13 @@
 
             <!-- Type Selector -->
             <div class="type-selector">
-                <button class="type-btn" data-type="pomodoro" onclick="app.setEventType('pomodoro')">Pomodoro</button>
+                <button class="type-btn active" data-type="pomodoro" onclick="app.setEventType('pomodoro')">Pomodoro</button>
                 <button class="type-btn" data-type="reminder" onclick="app.setEventType('reminder')">Reminder</button>
-                <button class="type-btn active" data-type="timer" onclick="app.setEventType('timer')">Timer</button>
+                <button class="type-btn" data-type="timer" onclick="app.setEventType('timer')">Timer</button>
             </div>
 
             <!-- Timer Options -->
-            <div id="timerOptions" class="event-options">
+            <div id="timerOptions" class="event-options hidden">
                 <div class="countdown-inputs">
                     <div class="time-unit">
                         <input type="number" id="hoursInput" min="0" max="99" placeholder="H">
@@ -85,7 +85,7 @@
             </div>
 
             <!-- Pomodoro Options -->
-            <div id="pomodoroOptions" class="event-options hidden">
+            <div id="pomodoroOptions" class="event-options">
                 <div class="pomodoro-inputs">
                     <div class="pomo-field">
                         <input type="number" id="pomoWork" min="1" max="120" value="55">
@@ -138,7 +138,7 @@
             </div>
 
             <!-- Add Button -->
-            <button id="addEvent" class="add-btn">Start Timer</button>
+            <button id="addEvent" class="add-btn">Start Pomodoro</button>
         </div>
 
         <!-- Active Sessions -->
