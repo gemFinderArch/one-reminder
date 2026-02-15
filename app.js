@@ -1017,6 +1017,8 @@ body{background:#1a1a2e;color:#fff;font-family:-apple-system,BlinkMacSystemFont,
 .type.reminder{background:rgba(255,149,0,0.15);color:#ff9500}
 .type.pomodoro{background:rgba(255,68,68,0.15);color:#ff4444}
 .pomo-stats{font-size:.85rem;color:#666;flex:0 0 100%;text-align:center;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,0.08)}
+.pomo-current{color:#fff;font-weight:700}
+.pomo-finish{color:#00ff88;font-family:'Courier New',monospace}
 .countdown{font-size:1.3rem;font-weight:700;color:#00d9ff;font-family:'Courier New',monospace;white-space:nowrap}
 .session-description{width:100%;text-align:center;font-size:.85rem;color:#aaa;max-height:4em;overflow-y:auto;white-space:pre-wrap;word-break:break-word;border-top:1px solid rgba(255,255,255,0.1);padding-top:8px;margin-top:8px;line-height:1.35}
 .empty{text-align:center;color:#555;padding:20px;font-style:italic}
@@ -1030,9 +1032,9 @@ h2{font-size:1rem;color:#aaa;margin-bottom:10px;display:flex;align-items:center;
         if (session.type === 'pomodoro') {
             const phaseLabels = { work: 'Work', break: 'Break', longBreak: 'Long Break' };
             const phaseLabel = phaseLabels[session.phase];
-            const untilLongBreak = session.sessionsPerCycle - session.currentSession;
+            const finishTimeStr = session.finishTime ? this.formatFinishTime(session.finishTime) : '';
             return `<div class="card pomodoro phase-${session.phase}">
-<div class="pomo-stats">Session ${session.currentSession}/${session.sessionsPerCycle} · Cycle ${session.currentCycle}/${session.totalCycles} · ${session.completedSessions} done · ${untilLongBreak} until long break</div>
+<div class="pomo-stats">Session <span class="pomo-current">${session.currentSession}</span>/${session.sessionsPerCycle} · Cycle <span class="pomo-current">${session.currentCycle}</span>/${session.totalCycles}${finishTimeStr ? ` · <span class="pomo-finish">Finish ${finishTimeStr}</span>` : ''}</div>
 <div style="display:flex;justify-content:space-between;align-items:center;width:100%"><div><div class="name">${this.escapeHtml(session.name)}</div>
 <div class="meta"><span class="type pomodoro">POMODORO</span> ${phaseLabel}</div></div>
 <div class="countdown">${this.formatTimeRemaining(remaining)}</div></div>
